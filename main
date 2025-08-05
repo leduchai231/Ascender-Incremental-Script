@@ -1471,31 +1471,40 @@ task.spawn(function()
     end
 end)
 
--- Function to convert number to scientific notation
-local function toScientificNotation(value)
+-- Function to convert game value to actual value using formula: x = 10^(y-|y|) * e^|y|
+local function toScientificNotation(gameValue)
     -- Convert to number if it's a string
-    local number = tonumber(value)
+    local y = tonumber(gameValue)
     
     -- Check if conversion was successful
-    if not number then
+    if not y then
         return "Invalid"
     end
     
-    if number == 0 then
+    if y == 0 then
         return "0"
     end
     
-    -- Tính log10 của số
-    local logValue = math.log10(math.abs(number))
+    -- |y| là phần nguyên của y
+    local integerPart = math.floor(math.abs(y))
     
-    -- Lấy phần nguyên và phần thập phân
-    local integerPart = math.floor(logValue)
-    local fractionalPart = logValue - integerPart
+    -- Áp dụng công thức: x = 10^(y-|y|) * e^|y|
+    -- Trong đó: y-|y| là phần thập phân
+    local fractionalPart = y - integerPart
     
-    -- Tính mantissa: 10^(phần thập phân)
-    local mantissa = 10 ^ fractionalPart
+    -- Tính x = 10^(fractionalPart) * e^(integerPart)
+    local mantissa = (10 ^ fractionalPart) * math.exp(integerPart)
     
-    return string.format("%.3fe%d", mantissa, integerPart)
+    -- Chuyển về dạng scientific notation
+    if mantissa == 0 then
+        return "0"
+    end
+    
+    local logMantissa = math.log10(mantissa)
+    local exponent = math.floor(logMantissa)
+    local coefficient = mantissa / (10 ^ exponent)
+    
+    return string.format("%.2fe%d", coefficient, exponent)
 end
 
 -- Function to safely get value from Roblox Value objects
