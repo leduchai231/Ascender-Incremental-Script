@@ -1544,100 +1544,87 @@ end
 local function updateValues()
     local success, err = pcall(function()
         local player = game:GetService("Players").LocalPlayer
-        if player and player:FindFirstChild("Stats") then
-            local stats = player.Stats
-            
-            -- Get Prisms Value
-            local prismsStats = stats:FindFirstChild("Prisms")
-            if prismsStats then
-                local numValue = getValueSafely(prismsStats)
-                prismsValue = numValue
-                local scientificValue = toScientificNotation(prismsValue)
-                PrismsLabel:Set("Prisms: " .. scientificValue)
-            else
-                PrismsLabel:Set("Prisms: Not Available")
-            end
-            
-            -- Get Chromium Value
-            local chromiumStats = stats:FindFirstChild("Chromium")
-            if chromiumStats then
-                local numValue = getValueSafely(chromiumStats)
-                chromiumValue = numValue
-                local scientificValue = toScientificNotation(chromiumValue)
-                ChromiumLabel:Set("Chromium: " .. scientificValue)
-            else
-                ChromiumLabel:Set("Chromium: Not Available")
-            end
-            
-            -- Get Energy Value
-            local energyStats = stats:FindFirstChild("Energy")
-            if energyStats then
-                local numValue = getValueSafely(energyStats)
-                local scientificValue = toScientificNotation(numValue)
-                EnergyLabel:Set("Energy: " .. scientificValue)
-            else
-                EnergyLabel:Set("Energy: Not Available")
-            end
-            
-            -- Get Flame Value
-            local flameStats = stats:FindFirstChild("Flame")
-            if flameStats then
-                local numValue = getValueSafely(flameStats)
-                local scientificValue = toScientificNotation(numValue)
-                FlameLabel:Set("Flame: " .. scientificValue)
-            else
-                FlameLabel:Set("Flame: Not Available")
-            end
-            
-            -- Get Power Value
-            local powerStats = stats:FindFirstChild("Power")
-            if powerStats then
-                local numValue = getValueSafely(powerStats)
-                local scientificValue = toScientificNotation(numValue)
-                PowerLabel:Set("Power: " .. scientificValue)
-            else
-                PowerLabel:Set("Power: Not Available")
-            end
-            
-            -- Get Realm Points Value
-            local rpStats = stats:FindFirstChild("Realm Points")
-            if rpStats then
-                local numValue = getValueSafely(rpStats)
-                local scientificValue = toScientificNotation(numValue)
-                RPLabel:Set("Realm Points: " .. scientificValue)
-            else
-                RPLabel:Set("Realm Points: Not Available")
-            end
-            
-            -- Get Flesh Value
-            local fleshStats = stats:FindFirstChild("Flesh")
-            if fleshStats then
-                local numValue = getValueSafely(fleshStats)
-                local scientificValue = toScientificNotation(numValue)
-                FleshLabel:Set("Flesh: " .. scientificValue)
-            else
-                FleshLabel:Set("Flesh: Not Available")
-            end
-            
-            -- Get Arctic Points Value
-            local apStats = stats:FindFirstChild("ArcticPoints")
-            if apStats then
-                local numValue = getValueSafely(apStats)
-                local scientificValue = toScientificNotation(numValue)
-                APLabel:Set("Arctic Points: " .. scientificValue)
-            else
-                APLabel:Set("Arctic Points: Not Available")
-            end
-            
+        
+        -- Get Prisms Value using direct path
+        local prismsStats = game:GetService("Players").LocalPlayer.Stats.Prisms
+        if prismsStats then
+            local numValue = getValueSafely(prismsStats)
+            prismsValue = numValue
+            local scientificValue = toScientificNotation(prismsValue)
+            PrismsLabel:Set("Prisms: " .. scientificValue)
         else
-            PrismsLabel:Set("Prisms: Player Stats Not Found")
-            ChromiumLabel:Set("Chromium: Player Stats Not Found")
-            EnergyLabel:Set("Energy: Player Stats Not Found")
-            FlameLabel:Set("Flame: Player Stats Not Found")
-            PowerLabel:Set("Power: Player Stats Not Found")
-            RPLabel:Set("Realm Points: Player Stats Not Found")
-            FleshLabel:Set("Flesh: Player Stats Not Found")
-            APLabel:Set("Arctic Points: Player Stats Not Found")
+            PrismsLabel:Set("Prisms: Not Available")
+        end
+            
+        -- Get Chromium Value using direct path
+        local chromiumStats = game:GetService("Players").LocalPlayer.Stats.Chromium
+        if chromiumStats then
+            local numValue = getValueSafely(chromiumStats)
+            chromiumValue = numValue
+            local scientificValue = toScientificNotation(chromiumValue)
+            ChromiumLabel:Set("Chromium: " .. scientificValue)
+        else
+            ChromiumLabel:Set("Chromium: Not Available")
+        end
+            
+        -- Get Energy Value using direct path
+        local energyStats = game:GetService("Players").LocalPlayer.Stats.Energy
+        if energyStats then
+            local numValue = getValueSafely(energyStats)
+            local scientificValue = toScientificNotation(numValue)
+            EnergyLabel:Set("Energy: " .. scientificValue)
+        else
+            EnergyLabel:Set("Energy: Not Available")
+        end
+            
+        -- Get Flame Value using direct path
+        local flameStats = game:GetService("Players").LocalPlayer.Stats.Flame
+        if flameStats then
+            local numValue = getValueSafely(flameStats)
+            local scientificValue = toScientificNotation(numValue)
+            FlameLabel:Set("Flame: " .. scientificValue)
+        else
+            FlameLabel:Set("Flame: Not Available")
+        end
+            
+        -- Get Power Value using direct path
+        local powerStats = game:GetService("Players").LocalPlayer.Stats.Power
+        if powerStats then
+            local numValue = getValueSafely(powerStats)
+            local scientificValue = toScientificNotation(numValue)
+            PowerLabel:Set("Power: " .. scientificValue)
+        else
+            PowerLabel:Set("Power: Not Available")
+        end
+            
+        -- Get Realm Points Value using direct path
+        local rpStats = game:GetService("Players").LocalPlayer.Stats["Realm Points"]
+        if rpStats then
+            local numValue = getValueSafely(rpStats)
+            local scientificValue = toScientificNotation(numValue)
+            RPLabel:Set("Realm Points: " .. scientificValue)
+        else
+            RPLabel:Set("Realm Points: Not Available")
+        end
+            
+        -- Get Flesh Value using direct path
+        local fleshStats = game:GetService("Players").LocalPlayer.Stats.Flesh
+        if fleshStats then
+            local numValue = getValueSafely(fleshStats)
+            local scientificValue = toScientificNotation(numValue)
+            FleshLabel:Set("Flesh: " .. scientificValue)
+        else
+            FleshLabel:Set("Flesh: Not Available")
+        end
+            
+        -- Get Arctic Points Value using direct path
+        local apStats = game:GetService("Players").LocalPlayer.Stats.ArcticPoints
+        if apStats then
+            local numValue = getValueSafely(apStats)
+            local scientificValue = toScientificNotation(numValue)
+            APLabel:Set("Arctic Points: " .. scientificValue)
+        else
+            APLabel:Set("Arctic Points: Not Available")
         end
         
         -- Get Chromatizer Price (keep original format, no scientific notation)
