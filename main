@@ -1,39 +1,59 @@
 
--- Load OrionLib with mobile fixes
+-- Load OrionLib with improved error handling and multiple fallbacks
 local OrionLib
-local success, result = pcall(function()
-    -- Try to load mobile-fixed version first
-    local mobileFixedOrion = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
-    return mobileFixedOrion
-end)
+local orionSources = {
+    "https://raw.githubusercontent.com/shlexware/Orion/main/source",
+    "https://raw.githubusercontent.com/ionlyusegithubformcmods/1-Line-Scripts/main/Orion.lua",
+    "https://raw.githubusercontent.com/ActualMasterOogway/Orion-Library/main/source.lua"
+}
 
-if success then
-    OrionLib = result
-else
-    -- Fallback to original if mobile version fails
-    local fallbackSuccess, fallbackResult = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/jensonhirst/Orion/refs/heads/main/source"))()
-    end)
-    
-    if fallbackSuccess then
-        OrionLib = fallbackResult
-        warn("Using fallback OrionLib version")
-    else
-        warn("Failed to load OrionLib: " .. tostring(result))
-        return
+local function loadOrionLib()
+    for i, source in ipairs(orionSources) do
+        local success, result = pcall(function()
+            return loadstring(game:HttpGet(source))()
+        end)
+        
+        if success and result then
+            if i > 1 then
+                warn("Using OrionLib fallback source #" .. i)
+            end
+            return result
+        else
+            warn("Failed to load OrionLib from source #" .. i .. ": " .. tostring(result))
+        end
     end
+    
+    error("All OrionLib sources failed to load")
+end
+
+local loadSuccess, loadResult = pcall(loadOrionLib)
+if loadSuccess then
+    OrionLib = loadResult
+else
+    warn("Critical error: " .. tostring(loadResult))
+    return
 end 
 
--- Create main Window with mobile optimizations
-local Window = OrionLib:MakeWindow({
-    Name = "Ascender Incremental Hub",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "AscenderIncrementalConfig",
-    IntroEnabled = true,
-    IntroText = "Ascender Incremental Script",
-    Icon = "rbxassetid://4483345998"
-})
+-- Create main Window with mobile optimizations and error handling
+local Window
+local windowSuccess, windowError = pcall(function()
+    return OrionLib:MakeWindow({
+        Name = "Ascender Incremental Hub",
+        HidePremium = false,
+        SaveConfig = true,
+        ConfigFolder = "AscenderIncrementalConfig",
+        IntroEnabled = false, -- Disable intro to prevent potential issues
+        IntroText = "Ascender Incremental Script"
+        -- Removed Icon to prevent Frame property errors
+    })
+end)
+
+if windowSuccess then
+    Window = windowSuccess
+else
+    warn("Failed to create OrionLib window: " .. tostring(windowError))
+    return
+end
 
 -- Mobile optimization: Make GUI draggable and touch-friendly
 local function optimizeForMobile()
@@ -134,36 +154,41 @@ task.spawn(function()
     fixDraggableForMobile()
 end)
 
--- Create Tabs
-local MainTab = Window:MakeTab({
-    Name = "Main",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+-- Create Tabs with error handling
+local MainTab, TeleportTab, ConfigTab, StatsTab, SettingsTab
 
-local TeleportTab = Window:MakeTab({
-    Name = "Teleport",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+local function createTabs()
+    MainTab = Window:MakeTab({
+        Name = "Main",
+        PremiumOnly = false
+    })
+    
+    TeleportTab = Window:MakeTab({
+        Name = "Teleport",
+        PremiumOnly = false
+    })
+    
+    ConfigTab = Window:MakeTab({
+        Name = "Config",
+        PremiumOnly = false
+    })
+    
+    StatsTab = Window:MakeTab({
+        Name = "Stats",
+        PremiumOnly = false
+    })
+    
+    SettingsTab = Window:MakeTab({
+        Name = "Settings",
+        PremiumOnly = false
+    })
+end
 
-local ConfigTab = Window:MakeTab({
-    Name = "Config",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-local StatsTab = Window:MakeTab({
-    Name = "Stats",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-local SettingsTab = Window:MakeTab({
-    Name = "Settings",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+local tabSuccess, tabError = pcall(createTabs)
+if not tabSuccess then
+    warn("Failed to create tabs: " .. tostring(tabError))
+    return
+end
 
 -- Services and Events
 local Players = game:GetService("Players")
@@ -231,7 +256,6 @@ local function ensureConfigFolder()
         OrionLib:MakeNotification({
             Name = "Config Error",
             Content = "Failed to create config folder: " .. tostring(err),
-            Image = "rbxassetid://4483345998",
             Time = 3
         })
         return false
@@ -322,14 +346,12 @@ local function saveConfig(configName)
         OrionLib:MakeNotification({
             Name = "Config",
             Content = "Configuration '" .. configName .. "' saved successfully!",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     else
         OrionLib:MakeNotification({
             Name = "Config Error",
             Content = "Failed to save configuration: " .. tostring(err),
-            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -372,7 +394,6 @@ local function loadConfig(configName)
         OrionLib:MakeNotification({
             Name = "Config",
             Content = "Configuration '" .. configName .. "' loaded successfully!",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     else
@@ -388,7 +409,6 @@ local function loadConfig(configName)
         OrionLib:MakeNotification({
             Name = "Config Error",
             Content = "Failed to load configuration '" .. configName .. "', using defaults",
-            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -570,7 +590,6 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Anti AFK",
             Content = Value and "Anti AFK enabled" or "Anti AFK disabled",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -598,7 +617,6 @@ ConfigTab:AddTextbox({
                 OrionLib:MakeNotification({
                     Name = "Config Error",
                     Content = "Invalid config name! Use letters, numbers, spaces, hyphens, or underscores only.",
-                    Image = "rbxassetid://4483345998",
                     Time = 3
                 })
             end
@@ -616,7 +634,7 @@ local configDropdown = ConfigTab:AddDropdown({
             OrionLib:MakeNotification({
                 Name = "Config",
                 Content = "Switched to configuration: " .. Value,
-                Image = "rbxassetid://4483345998",
+    
                 Time = 2
             })
         end
@@ -631,7 +649,7 @@ ConfigTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Config",
             Content = "Config list refreshed! Found " .. #configs .. " configs",
-            Image = "rbxassetid://4483345998",
+    
             Time = 2
         })
     end
@@ -647,7 +665,7 @@ ConfigTab:AddButton({
             OrionLib:MakeNotification({
                 Name = "Config Error",
                 Content = "No config selected to load!",
-                Image = "rbxassetid://4483345998",
+
                 Time = 3
             })
         end
@@ -663,7 +681,6 @@ ConfigTab:AddButton({
             OrionLib:MakeNotification({
                 Name = "Config Error",
                 Content = "No config name specified. Please create a new config first.",
-                Image = "rbxassetid://4483345998",
                 Time = 3
             })
         end
@@ -698,14 +715,12 @@ ConfigTab:AddButton({
                 OrionLib:MakeNotification({
                     Name = "Config",
                     Content = "Configuration '" .. selectedConfig .. "' removed successfully!",
-                    Image = "rbxassetid://4483345998",
                     Time = 2
                 })
             else
                 OrionLib:MakeNotification({
                     Name = "Config Error",
                     Content = "Failed to remove configuration: " .. tostring(err),
-                    Image = "rbxassetid://4483345998",
                     Time = 3
                 })
             end
@@ -713,7 +728,6 @@ ConfigTab:AddButton({
             OrionLib:MakeNotification({
                 Name = "Config Error",
                 Content = selectedConfig == defaultConfigName and "Cannot remove default config!" or "No config selected to remove!",
-                Image = "rbxassetid://4483345998",
                 Time = 3
             })
         end
@@ -734,7 +748,6 @@ ConfigTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Config",
             Content = "Configuration reset to default values!",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -766,7 +779,6 @@ ConfigTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Auto Save",
             Content = Value and "Auto save enabled (every 30s)" or "Auto save disabled",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -792,7 +804,6 @@ ConfigTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Current Settings",
             Content = configInfo,
-            Image = "rbxassetid://4483345998",
             Time = 5
         })
     end
@@ -807,7 +818,6 @@ MainTab:AddDropdown({
         OrionLib:MakeNotification({
             Name = "Upgrade Type",
             Content = "Selected upgrade type: " .. Value,
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -821,7 +831,6 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Auto Upgrade",
             Content = Value and "Auto Upgrade enabled (" .. selectedUpgradeType .. ")" or "Auto Upgrade disabled",
-            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -835,7 +844,6 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Auto All Rune",
             Content = Value and "Auto All Rune enabled - RISK MODE!" or "Auto All Rune disabled",
-            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -853,14 +861,12 @@ MainTab:AddTextbox({
             OrionLib:MakeNotification({
                 Name = "Speed Setting",
                 Content = "Rune speed set to " .. string.format("%.2f", numValue) .. " seconds",
-                Image = "rbxassetid://4483345998",
                 Time = 2
             })
         else
             OrionLib:MakeNotification({
                 Name = "Invalid Input",
                 Content = "Please enter a number between 0.01 and 10",
-                Image = "rbxassetid://4483345998",
                 Time = 3
             })
         end
@@ -879,14 +885,12 @@ MainTab:AddTextbox({
             OrionLib:MakeNotification({
                 Name = "Check Interval",
                 Content = "Chromatizer check interval set to " .. string.format("%.1f", numValue) .. " seconds",
-                Image = "rbxassetid://4483345998",
                 Time = 2
             })
         else
             OrionLib:MakeNotification({
                 Name = "Invalid Input",
                 Content = "Please enter a number between 0.1 and 10",
-                Image = "rbxassetid://4483345998",
                 Time = 3
             })
         end
@@ -923,7 +927,6 @@ MainTab:AddDropdown({
         OrionLib:MakeNotification({
             Name = "Rune Selection",
             Content = "Selected rune: " .. Value,
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -937,7 +940,6 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Auto Rune",
             Content = Value and "Auto Rune enabled for " .. selectedRune or "Auto Rune disabled",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -954,7 +956,6 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Auto Chromatizer",
             Content = Value and "Auto Chromatizer Level enabled" or "Auto Chromatizer Level disabled",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -994,7 +995,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to 5M Beginner" or "Failed to teleport to 5M Beginner",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1016,7 +1016,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to 5M Royal" or "Failed to teleport to 5M Royal",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1038,7 +1037,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Basic Rune" or "Failed to teleport to Basic Rune",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1060,7 +1058,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Color Rune" or "Failed to teleport to Color Rune",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1082,7 +1079,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Nature Rune" or "Failed to teleport to Nature Rune",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1104,7 +1100,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Polychrome Rune" or "Failed to teleport to Polychrome Rune",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1126,7 +1121,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Cryo Rune" or "Failed to teleport to Cryo Rune",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1148,7 +1142,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Arctic Rune" or "Failed to teleport to Arctic Rune",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1163,7 +1156,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Area Teleport",
             Content = "Teleported to Realm 1",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1176,7 +1168,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Area Teleport",
             Content = "Teleported to Realm 2",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1189,7 +1180,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Area Teleport",
             Content = "Teleported to Hall Of Fame",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1204,7 +1194,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Teleport",
             Content = "Teleported to Talent Tree W1 (Position 1)",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1217,7 +1206,6 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Teleport",
             Content = "Teleported to Talent Tree W2 (Position 2)",
-            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1236,7 +1224,6 @@ SettingsTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Position Check",
             Content = "Current position: " .. currentPosition,
-            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -1253,14 +1240,12 @@ SettingsTab:AddButton({
                 OrionLib:MakeNotification({
                     Name = "Position Copied",
                     Content = "Position copied: " .. positionText,
-                    Image = "rbxassetid://4483345998",
                     Time = 3
                 })
             else
                 OrionLib:MakeNotification({
                     Name = "Error",
                     Content = "Cannot get current position",
-                    Image = "rbxassetid://4483345998",
                     Time = 2
                 })
             end
@@ -1270,7 +1255,6 @@ SettingsTab:AddButton({
             OrionLib:MakeNotification({
                 Name = "Error",
                 Content = "Error copying position: " .. tostring(err),
-                Image = "rbxassetid://4483345998",
                 Time = 2
             })
         end
@@ -1297,7 +1281,6 @@ task.spawn(function()
                 OrionLib:MakeNotification({
                     Name = "Anti AFK",
                     Content = "Prevented AFK kick!",
-                    Image = "rbxassetid://4483345998",
                     Time = 2
                 })
             else
@@ -1716,7 +1699,6 @@ local function autoChromatize()
                 OrionLib:MakeNotification({
                     Name = "Auto Chromatizer",
                     Content = "Chromatized! Price: " .. priceText,
-                    Image = "rbxassetid://4483345998",
                     Time = 2
                 })
             end
@@ -1843,7 +1825,6 @@ local function initializeConfig()
         OrionLib:MakeNotification({
             Name = "Config Warning",
             Content = "Failed to load default config, using built-in defaults",
-            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -1856,7 +1837,6 @@ local deviceType = game:GetService("UserInputService").TouchEnabled and "Mobile"
 OrionLib:MakeNotification({
     Name = "Ascender Incremental Hub",
     Content = "Script loaded successfully on " .. deviceType .. "! Welcome to Ascender Incremental Hub!",
-    Image = "rbxassetid://4483345998",
     Time = 5
 })
 
@@ -1866,7 +1846,6 @@ if game:GetService("UserInputService").TouchEnabled then
     OrionLib:MakeNotification({
         Name = "Mobile Tips",
         Content = "Mobile optimizations applied! Use 'Toggle GUI (Mobile)' button if keybind doesn't work.",
-        Image = "rbxassetid://4483345998",
         Time = 7
     })
 end
