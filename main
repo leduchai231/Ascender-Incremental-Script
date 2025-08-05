@@ -205,7 +205,9 @@ local defaultConfig = {
     autoUpgradeEnabled = false,
     selectedUpgradeType = "W1",
     autoAllRuneEnabled = false,
-    autoAllRuneSpeed = 2
+    autoAllRuneSpeed = 2,
+    autoChromatizeEnabled = false,
+    chromatizeCheckInterval = 1
 }
 
 local function getConfigPath(configName)
@@ -293,7 +295,9 @@ local function saveConfig(configName)
         autoUpgradeEnabled = autoUpgradeEnabled,
         selectedUpgradeType = selectedUpgradeType,
         autoAllRuneEnabled = autoAllRuneEnabled,
-        autoAllRuneSpeed = autoAllRuneSpeed
+        autoAllRuneSpeed = autoAllRuneSpeed,
+        autoChromatizeEnabled = autoChromatizeEnabled,
+        chromatizeCheckInterval = chromatizeCheckInterval
     }
     
     local success, err = pcall(function()
@@ -349,6 +353,8 @@ local function loadConfig(configName)
         selectedUpgradeType = result.selectedUpgradeType or defaultConfig.selectedUpgradeType
         autoAllRuneEnabled = result.autoAllRuneEnabled or defaultConfig.autoAllRuneEnabled
         autoAllRuneSpeed = result.autoAllRuneSpeed or defaultConfig.autoAllRuneSpeed
+        autoChromatizeEnabled = result.autoChromatizeEnabled or defaultConfig.autoChromatizeEnabled
+        chromatizeCheckInterval = result.chromatizeCheckInterval or defaultConfig.chromatizeCheckInterval
         
         currentConfigName = configName
         
@@ -366,10 +372,12 @@ local function loadConfig(configName)
     else
         -- Use default values
         antiAfkEnabled = defaultConfig.antiAfkEnabled
-        autoUpgradeEnabled = defaultConfig.autoUpgradeEnabled
-        selectedUpgradeType = defaultConfig.selectedUpgradeType
-        autoAllRuneEnabled = defaultConfig.autoAllRuneEnabled
-        autoAllRuneSpeed = defaultConfig.autoAllRuneSpeed
+         autoUpgradeEnabled = defaultConfig.autoUpgradeEnabled
+         selectedUpgradeType = defaultConfig.selectedUpgradeType
+         autoAllRuneEnabled = defaultConfig.autoAllRuneEnabled
+         autoAllRuneSpeed = defaultConfig.autoAllRuneSpeed
+         autoChromatizeEnabled = defaultConfig.autoChromatizeEnabled
+         chromatizeCheckInterval = defaultConfig.chromatizeCheckInterval
         
         OrionLib:MakeNotification({
             Name = "Config Error",
@@ -714,6 +722,8 @@ ConfigTab:AddButton({
         selectedUpgradeType = defaultConfig.selectedUpgradeType
         autoAllRuneEnabled = defaultConfig.autoAllRuneEnabled
         autoAllRuneSpeed = defaultConfig.autoAllRuneSpeed
+        autoChromatizeEnabled = defaultConfig.autoChromatizeEnabled
+        chromatizeCheckInterval = defaultConfig.chromatizeCheckInterval
         
         OrionLib:MakeNotification({
             Name = "Config",
@@ -762,13 +772,15 @@ ConfigTab:AddButton({
     Name = "Show Current Settings",
     Callback = function()
         local configInfo = string.format(
-            "Config: %s\nAnti AFK: %s\nAuto Upgrade: %s\nUpgrade Type: %s\nAuto All Rune: %s\nRune Speed: %.2fs",
+            "Config: %s\nAnti AFK: %s\nAuto Upgrade: %s\nUpgrade Type: %s\nAuto All Rune: %s\nRune Speed: %.2fs\nAuto Chromatizer: %s\nCheck Interval: %.1fs",
             currentConfigName,
             antiAfkEnabled and "ON" or "OFF",
             autoUpgradeEnabled and "ON" or "OFF",
             selectedUpgradeType,
             autoAllRuneEnabled and "ON" or "OFF",
-            autoAllRuneSpeed
+            autoAllRuneSpeed,
+            autoChromatizeEnabled and "ON" or "OFF",
+            chromatizeCheckInterval
         )
         
         OrionLib:MakeNotification({
@@ -849,9 +861,41 @@ MainTab:AddTextbox({
     end
 })
 
+-- Chromatizer Check Interval
+MainTab:AddTextbox({
+    Name = "Chromatizer Check Interval (seconds)",
+    Default = tostring(chromatizeCheckInterval),
+    TextDisappear = false,
+    Callback = function(Value)
+        local numValue = tonumber(Value)
+        if numValue and numValue >= 0.1 and numValue <= 10 then
+            chromatizeCheckInterval = numValue
+            OrionLib:MakeNotification({
+                Name = "Check Interval",
+                Content = "Chromatizer check interval set to " .. string.format("%.1f", numValue) .. " seconds",
+                Image = "rbxassetid://4483345998",
+                Time = 2
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Invalid Input",
+                Content = "Please enter a number between 0.1 and 10",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
 -- Auto Rune (Single Rune Selection)
 local autoRuneEnabled = false
 local selectedRune = "5M Beginner"
+
+-- Auto Chromatizer Level
+local autoChromatizeEnabled = false
+local chromatizeCheckInterval = 1
+local prismsValue = 0
+local chromiumValue = 0
 
 local runeList = {
     "5M Beginner",
@@ -892,6 +936,29 @@ MainTab:AddToggle({
         })
     end
 })
+
+-- Auto Chromatizer Level Section
+MainTab:AddLabel("Auto Chromatizer Level")
+
+MainTab:AddToggle({
+    Name = "Auto Chromatizer Level",
+    Default = autoChromatizeEnabled,
+    Callback = function(Value)
+        autoChromatizeEnabled = Value
+        OrionLib:MakeNotification({
+            Name = "Auto Chromatizer",
+            Content = Value and "Auto Chromatizer Level enabled" or "Auto Chromatizer Level disabled",
+            Image = "rbxassetid://4483345998",
+            Time = 2
+        })
+    end
+})
+
+MainTab:AddLabel("Values Monitor")
+
+local PrismsLabel = MainTab:AddLabel("Prisms Value: Loading...")
+local ChromiumLabel = MainTab:AddLabel("Chromium Value: Loading...")
+local ChromatizerPriceLabel = MainTab:AddLabel("Chromatizer Price: Loading...")
 
 -- TAB TELEPORT
 TeleportTab:AddLabel("Quick Teleport")
@@ -1386,6 +1453,76 @@ task.spawn(function()
         end
         
         task.wait(15) -- Wait 15 seconds before repeating
+    end
+end)
+
+-- Function to get current values
+local function updateValues()
+    local success, err = pcall(function()
+        -- Get Prisms Value
+        local prismsStats = game:GetService("Players").LocalPlayer.Stats.Prisms
+        if prismsStats then
+            prismsValue = prismsStats.Value
+            PrismsLabel:Set("Prisms Value: " .. tostring(prismsValue))
+        end
+        
+        -- Get Chromium Value
+        local chromiumStats = game:GetService("Players").LocalPlayer.Stats.Chromium
+        if chromiumStats then
+            chromiumValue = chromiumStats.Value
+            ChromiumLabel:Set("Chromium Value: " .. tostring(chromiumValue))
+        end
+        
+        -- Get Chromatizer Price
+        local chromatizeButton = workspace.Layers.Chromatizer.Chromatize.Button.BillboardGui.Price
+        if chromatizeButton and chromatizeButton.Text then
+            ChromatizerPriceLabel:Set("Chromatizer Price: " .. chromatizeButton.Text)
+        end
+    end)
+    
+    if not success then
+        warn("Value update error: " .. tostring(err))
+    end
+end
+
+-- Function to check and auto chromatize
+local function autoChromatize()
+    local success, err = pcall(function()
+        if not autoChromatizeEnabled then return end
+        
+        -- Get current chromatizer price
+        local chromatizeButton = workspace.Layers.Chromatizer.Chromatize.Button.BillboardGui.Price
+        if chromatizeButton and chromatizeButton.Text then
+            local priceText = chromatizeButton.Text
+            local priceNumber = tonumber(priceText:match("%d+"))
+            
+            if priceNumber and prismsValue >= priceNumber then
+                -- Click chromatizer button
+                local button = workspace.Layers.Chromatizer.Chromatize.Button
+                if button then
+                    safeFireServer(game:GetService("ReplicatedStorage").Remotes.Chromatize)
+                    OrionLib:MakeNotification({
+                        Name = "Auto Chromatizer",
+                        Content = "Chromatized! Price: " .. priceText,
+                        Image = "rbxassetid://4483345998",
+                        Time = 2
+                    })
+                end
+            end
+        end
+    end)
+    
+    if not success then
+        warn("Auto chromatize error: " .. tostring(err))
+    end
+end
+
+-- Values monitor and auto chromatizer loop
+task.spawn(function()
+    while scriptRunning do
+        updateValues()
+        autoChromatize()
+        task.wait(chromatizeCheckInterval)
     end
 end)
 
