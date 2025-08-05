@@ -1498,6 +1498,25 @@ local function toScientificNotation(value)
     return string.format("%.3fe%d", mantissa, integerPart)
 end
 
+-- Function to safely get value from Roblox Value objects
+local function getValueSafely(valueObject)
+    if not valueObject then return 0 end
+    
+    -- Handle different types of Value objects
+    if valueObject.ClassName == "IntValue" or valueObject.ClassName == "NumberValue" then
+        return valueObject.Value or 0
+    elseif valueObject.ClassName == "StringValue" then
+        -- For StringValue, try to convert to number, otherwise return 0
+        local numValue = tonumber(valueObject.Value)
+        return numValue or 0
+    else
+        -- Fallback: try .Value property first, then .Text
+        local value = valueObject.Value or valueObject.Text or 0
+        local numValue = tonumber(value)
+        return numValue or 0
+    end
+end
+
 -- Function to get current values
 local function updateValues()
     local success, err = pcall(function()
@@ -1508,8 +1527,8 @@ local function updateValues()
             -- Get Prisms Value
             local prismsStats = stats:FindFirstChild("Prisms")
             if prismsStats then
-                local value = prismsStats.Value or prismsStats.Text or 0
-                prismsValue = tonumber(value) or 0
+                local numValue = getValueSafely(prismsStats)
+                prismsValue = numValue
                 local scientificValue = toScientificNotation(prismsValue)
                 PrismsLabel:Set("Prisms: " .. scientificValue)
             else
@@ -1519,8 +1538,8 @@ local function updateValues()
             -- Get Chromium Value
             local chromiumStats = stats:FindFirstChild("Chromium")
             if chromiumStats then
-                local value = chromiumStats.Value or chromiumStats.Text or 0
-                chromiumValue = tonumber(value) or 0
+                local numValue = getValueSafely(chromiumStats)
+                chromiumValue = numValue
                 local scientificValue = toScientificNotation(chromiumValue)
                 ChromiumLabel:Set("Chromium: " .. scientificValue)
             else
@@ -1530,8 +1549,7 @@ local function updateValues()
             -- Get Energy Value
             local energyStats = stats:FindFirstChild("Energy")
             if energyStats then
-                local value = energyStats.Value or energyStats.Text or 0
-                local numValue = tonumber(value) or 0
+                local numValue = getValueSafely(energyStats)
                 local scientificValue = toScientificNotation(numValue)
                 EnergyLabel:Set("Energy: " .. scientificValue)
             else
@@ -1541,8 +1559,7 @@ local function updateValues()
             -- Get Flame Value
             local flameStats = stats:FindFirstChild("Flame")
             if flameStats then
-                local value = flameStats.Value or flameStats.Text or 0
-                local numValue = tonumber(value) or 0
+                local numValue = getValueSafely(flameStats)
                 local scientificValue = toScientificNotation(numValue)
                 FlameLabel:Set("Flame: " .. scientificValue)
             else
@@ -1552,8 +1569,7 @@ local function updateValues()
             -- Get Power Value
             local powerStats = stats:FindFirstChild("Power")
             if powerStats then
-                local value = powerStats.Value or powerStats.Text or 0
-                local numValue = tonumber(value) or 0
+                local numValue = getValueSafely(powerStats)
                 local scientificValue = toScientificNotation(numValue)
                 PowerLabel:Set("Power: " .. scientificValue)
             else
@@ -1563,8 +1579,7 @@ local function updateValues()
             -- Get Realm Points Value
             local rpStats = stats:FindFirstChild("Realm Points")
             if rpStats then
-                local value = rpStats.Value or rpStats.Text or 0
-                local numValue = tonumber(value) or 0
+                local numValue = getValueSafely(rpStats)
                 local scientificValue = toScientificNotation(numValue)
                 RPLabel:Set("Realm Points: " .. scientificValue)
             else
@@ -1574,8 +1589,7 @@ local function updateValues()
             -- Get Flesh Value
             local fleshStats = stats:FindFirstChild("Flesh")
             if fleshStats then
-                local value = fleshStats.Value or fleshStats.Text or 0
-                local numValue = tonumber(value) or 0
+                local numValue = getValueSafely(fleshStats)
                 local scientificValue = toScientificNotation(numValue)
                 FleshLabel:Set("Flesh: " .. scientificValue)
             else
@@ -1585,8 +1599,7 @@ local function updateValues()
             -- Get Arctic Points Value
             local apStats = stats:FindFirstChild("ArcticPoints")
             if apStats then
-                local value = apStats.Value or apStats.Text or 0
-                local numValue = tonumber(value) or 0
+                local numValue = getValueSafely(apStats)
                 local scientificValue = toScientificNotation(numValue)
                 APLabel:Set("Arctic Points: " .. scientificValue)
             else
