@@ -1456,6 +1456,18 @@ task.spawn(function()
     end
 end)
 
+-- Function to convert number to scientific notation
+local function toScientificNotation(number)
+    if number == 0 then
+        return "0"
+    end
+    
+    local exponent = math.floor(math.log10(math.abs(number)))
+    local mantissa = number / (10 ^ exponent)
+    
+    return string.format("%.3fe%d", mantissa, exponent):gsub("^0+", "")
+end
+
 -- Function to get current values
 local function updateValues()
     local success, err = pcall(function()
@@ -1463,14 +1475,16 @@ local function updateValues()
         local prismsStats = game:GetService("Players").LocalPlayer.Stats.Prisms
         if prismsStats then
             prismsValue = prismsStats.Value
-            PrismsLabel:Set("Prisms Value: " .. tostring(prismsValue))
+            local scientificValue = toScientificNotation(prismsValue)
+            PrismsLabel:Set("Prisms Value: " .. scientificValue)
         end
         
         -- Get Chromium Value
         local chromiumStats = game:GetService("Players").LocalPlayer.Stats.Chromium
         if chromiumStats then
             chromiumValue = chromiumStats.Value
-            ChromiumLabel:Set("Chromium Value: " .. tostring(chromiumValue))
+            local scientificValue = toScientificNotation(chromiumValue)
+            ChromiumLabel:Set("Chromium Value: " .. scientificValue)
         end
         
         -- Get Chromatizer Price
