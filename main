@@ -823,7 +823,75 @@ MainTab:AddToggle({
     end
 })
 
--- Auto All Rune Speed slider removed as requested
+-- Speed setting for both Auto All Rune and Auto Rune
+MainTab:AddTextbox({
+    Name = "Rune Speed (seconds)",
+    Default = "2",
+    TextDisappear = false,
+    Callback = function(Value)
+        local numValue = tonumber(Value)
+        if numValue and numValue >= 0.01 and numValue <= 10 then
+            autoAllRuneSpeed = numValue
+            OrionLib:MakeNotification({
+                Name = "Speed Setting",
+                Content = "Rune speed set to " .. string.format("%.2f", numValue) .. " seconds",
+                Image = "rbxassetid://4483345998",
+                Time = 2
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Invalid Input",
+                Content = "Please enter a number between 0.01 and 10",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Auto Rune (Single Rune Selection)
+local autoRuneEnabled = false
+local selectedRune = "5M Beginner"
+
+local runeList = {
+    "5M Beginner",
+    "5M Royal", 
+    "Basic Rune",
+    "Color Rune",
+    "Nature Rune",
+    "Polychrome Rune",
+    "Cryo Rune",
+    "Arctic Rune"
+}
+
+MainTab:AddDropdown({
+    Name = "Select Rune",
+    Default = "5M Beginner",
+    Options = runeList,
+    Callback = function(Value)
+        selectedRune = Value
+        OrionLib:MakeNotification({
+            Name = "Rune Selection",
+            Content = "Selected rune: " .. Value,
+            Image = "rbxassetid://4483345998",
+            Time = 2
+        })
+    end
+})
+
+MainTab:AddToggle({
+    Name = "Auto Rune",
+    Default = false,
+    Callback = function(Value)
+        autoRuneEnabled = Value
+        OrionLib:MakeNotification({
+            Name = "Auto Rune",
+            Content = Value and "Auto Rune enabled for " .. selectedRune or "Auto Rune disabled",
+            Image = "rbxassetid://4483345998",
+            Time = 2
+        })
+    end
+})
 
 -- TAB TELEPORT
 TeleportTab:AddLabel("Quick Teleport")
@@ -1236,6 +1304,48 @@ task.spawn(function()
          task.wait(0.1) -- Small wait to prevent lag
      end
  end)
+
+-- Auto Rune Loop (Single Rune)
+task.spawn(function()
+    while scriptRunning do
+        if autoRuneEnabled and selectedRune then
+            local success, err = pcall(function()
+                local button
+                if selectedRune == "5M Beginner" then
+                    button = workspace.Areas["Spawn Island"].Beginner.Basic.Button
+                elseif selectedRune == "5M Royal" then
+                    button = workspace.Areas["Spawn Island"].Royal.Basic.Button
+                elseif selectedRune == "Basic Rune" then
+                    button = workspace.Areas["Spawn Island"].Basic.Basic.Button
+                elseif selectedRune == "Color Rune" then
+                    button = workspace.Areas["Spawn Island"].Color.Color.Button
+                elseif selectedRune == "Nature Rune" then
+                    button = workspace.Areas["Spawn Island"].Nature.Nature.Button
+                elseif selectedRune == "Polychrome Rune" then
+                    button = workspace.Areas["Spawn Island"].Polychrome.Polychrome.Button
+                elseif selectedRune == "Cryo Rune" then
+                    button = workspace.Areas.Arctic.Cryo.Cryo.Button
+                elseif selectedRune == "Arctic Rune" then
+                    button = workspace.Areas.Arctic.Arctic.Arctic.Button
+                end
+                
+                if button and button.CFrame then
+                    local pos = button.CFrame.Position
+                    teleportToPosition(Vector3.new(pos.X, pos.Y + 5, pos.Z))
+                else
+                    error("Button not found for " .. selectedRune)
+                end
+            end)
+            
+            if not success then
+                warn("Auto Rune error for " .. selectedRune .. ": " .. tostring(err))
+            end
+            
+            task.wait(autoAllRuneSpeed) -- Use same speed setting as Auto All Rune
+        end
+        task.wait(0.1) -- Small wait to prevent lag
+    end
+end)
 
 -- Auto Upgrade Loop with error handling
 task.spawn(function()
