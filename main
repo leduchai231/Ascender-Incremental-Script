@@ -153,6 +153,12 @@ local ConfigTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+local StatsTab = Window:MakeTab({
+    Name = "Stats",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
 local SettingsTab = Window:MakeTab({
     Name = "Settings",
     Icon = "rbxassetid://4483345998",
@@ -954,11 +960,20 @@ MainTab:AddToggle({
     end
 })
 
-MainTab:AddLabel("Values Monitor")
+-- TAB STATS
+StatsTab:AddLabel("Game Statistics Monitor")
 
-local PrismsLabel = MainTab:AddLabel("Prisms Value: Loading...")
-local ChromiumLabel = MainTab:AddLabel("Chromium Value: Loading...")
-local ChromatizerPriceLabel = MainTab:AddLabel("Chromatizer Price: Loading...")
+local PrismsLabel = StatsTab:AddLabel("Prisms: Loading...")
+local ChromiumLabel = StatsTab:AddLabel("Chromium: Loading...")
+local EnergyLabel = StatsTab:AddLabel("Energy: Loading...")
+local FlameLabel = StatsTab:AddLabel("Flame: Loading...")
+local PowerLabel = StatsTab:AddLabel("Power: Loading...")
+local RPLabel = StatsTab:AddLabel("Realm Points: Loading...")
+local FleshLabel = StatsTab:AddLabel("Flesh: Loading...")
+local APLabel = StatsTab:AddLabel("Arctic Points: Loading...")
+
+StatsTab:AddLabel("Chromatizer Info")
+local ChromatizerPriceLabel = StatsTab:AddLabel("Chromatizer Price: Loading...")
 
 -- TAB TELEPORT
 TeleportTab:AddLabel("Quick Teleport")
@@ -1462,40 +1477,156 @@ local function toScientificNotation(number)
         return "0"
     end
     
-    local exponent = math.floor(math.log10(math.abs(number)))
-    local mantissa = number / (10 ^ exponent)
+    -- Tính log10 của số
+    local logValue = math.log10(math.abs(number))
     
-    return string.format("%.3fe%d", mantissa, exponent):gsub("^0+", "")
+    -- Lấy phần nguyên và phần thập phân
+    local integerPart = math.floor(logValue)
+    local fractionalPart = logValue - integerPart
+    
+    -- Tính mantissa: 10^(phần thập phân)
+    local mantissa = 10 ^ fractionalPart
+    
+    return string.format("%.3fe%d", mantissa, integerPart)
 end
 
 -- Function to get current values
 local function updateValues()
     local success, err = pcall(function()
-        -- Get Prisms Value
-        local prismsStats = game:GetService("Players").LocalPlayer.Stats.Prisms
-        if prismsStats then
-            prismsValue = prismsStats.Value
-            local scientificValue = toScientificNotation(prismsValue)
-            PrismsLabel:Set("Prisms Value: " .. scientificValue)
+        local player = game:GetService("Players").LocalPlayer
+        if player and player:FindFirstChild("Stats") then
+            local stats = player.Stats
+            
+            -- Get Prisms Value
+            local prismsStats = stats:FindFirstChild("Prisms")
+            if prismsStats and prismsStats.Value then
+                prismsValue = prismsStats.Value
+                local scientificValue = toScientificNotation(prismsValue)
+                PrismsLabel:Set("Prisms: " .. scientificValue)
+            else
+                PrismsLabel:Set("Prisms: Not Available")
+            end
+            
+            -- Get Chromium Value
+            local chromiumStats = stats:FindFirstChild("Chromium")
+            if chromiumStats and chromiumStats.Value then
+                chromiumValue = chromiumStats.Value
+                local scientificValue = toScientificNotation(chromiumValue)
+                ChromiumLabel:Set("Chromium: " .. scientificValue)
+            else
+                ChromiumLabel:Set("Chromium: Not Available")
+            end
+            
+            -- Get Energy Value
+            local energyStats = stats:FindFirstChild("Energy")
+            if energyStats and energyStats.Value then
+                local scientificValue = toScientificNotation(energyStats.Value)
+                EnergyLabel:Set("Energy: " .. scientificValue)
+            else
+                EnergyLabel:Set("Energy: Not Available")
+            end
+            
+            -- Get Flame Value
+            local flameStats = stats:FindFirstChild("Flame")
+            if flameStats and flameStats.Value then
+                local scientificValue = toScientificNotation(flameStats.Value)
+                FlameLabel:Set("Flame: " .. scientificValue)
+            else
+                FlameLabel:Set("Flame: Not Available")
+            end
+            
+            -- Get Power Value
+            local powerStats = stats:FindFirstChild("Power")
+            if powerStats and powerStats.Value then
+                local scientificValue = toScientificNotation(powerStats.Value)
+                PowerLabel:Set("Power: " .. scientificValue)
+            else
+                PowerLabel:Set("Power: Not Available")
+            end
+            
+            -- Get Realm Points Value
+            local rpStats = stats:FindFirstChild("Realm Points")
+            if rpStats and rpStats.Value then
+                local scientificValue = toScientificNotation(rpStats.Value)
+                RPLabel:Set("Realm Points: " .. scientificValue)
+            else
+                RPLabel:Set("Realm Points: Not Available")
+            end
+            
+            -- Get Flesh Value
+            local fleshStats = stats:FindFirstChild("Flesh")
+            if fleshStats and fleshStats.Value then
+                local scientificValue = toScientificNotation(fleshStats.Value)
+                FleshLabel:Set("Flesh: " .. scientificValue)
+            else
+                FleshLabel:Set("Flesh: Not Available")
+            end
+            
+            -- Get Arctic Points Value
+            local apStats = stats:FindFirstChild("ArcticPoints")
+            if apStats and apStats.Value then
+                local scientificValue = toScientificNotation(apStats.Value)
+                APLabel:Set("Arctic Points: " .. scientificValue)
+            else
+                APLabel:Set("Arctic Points: Not Available")
+            end
+            
+        else
+            PrismsLabel:Set("Prisms: Player Stats Not Found")
+            ChromiumLabel:Set("Chromium: Player Stats Not Found")
+            EnergyLabel:Set("Energy: Player Stats Not Found")
+            FlameLabel:Set("Flame: Player Stats Not Found")
+            PowerLabel:Set("Power: Player Stats Not Found")
+            RPLabel:Set("Realm Points: Player Stats Not Found")
+            FleshLabel:Set("Flesh: Player Stats Not Found")
+            APLabel:Set("Arctic Points: Player Stats Not Found")
         end
         
-        -- Get Chromium Value
-        local chromiumStats = game:GetService("Players").LocalPlayer.Stats.Chromium
-        if chromiumStats then
-            chromiumValue = chromiumStats.Value
-            local scientificValue = toScientificNotation(chromiumValue)
-            ChromiumLabel:Set("Chromium Value: " .. scientificValue)
-        end
-        
-        -- Get Chromatizer Price
-        local chromatizeButton = workspace.Layers.Chromatizer.Chromatize.Button.BillboardGui.Price
-        if chromatizeButton and chromatizeButton.Text then
-            ChromatizerPriceLabel:Set("Chromatizer Price: " .. chromatizeButton.Text)
+        -- Get Chromatizer Price (keep original format, no scientific notation)
+        local chromatizeButton = workspace:FindFirstChild("Layers")
+        if chromatizeButton then
+            chromatizeButton = chromatizeButton:FindFirstChild("Chromatizer")
+            if chromatizeButton then
+                chromatizeButton = chromatizeButton:FindFirstChild("Chromatize")
+                if chromatizeButton then
+                    chromatizeButton = chromatizeButton:FindFirstChild("Button")
+                    if chromatizeButton then
+                        chromatizeButton = chromatizeButton:FindFirstChild("BillboardGui")
+                        if chromatizeButton then
+                            chromatizeButton = chromatizeButton:FindFirstChild("Price")
+                            if chromatizeButton and chromatizeButton.Text then
+                                ChromatizerPriceLabel:Set("Chromatizer Price: " .. chromatizeButton.Text)
+                            else
+                                ChromatizerPriceLabel:Set("Chromatizer Price: Not Available")
+                            end
+                        else
+                            ChromatizerPriceLabel:Set("Chromatizer Price: BillboardGui Not Found")
+                        end
+                    else
+                        ChromatizerPriceLabel:Set("Chromatizer Price: Button Not Found")
+                    end
+                else
+                    ChromatizerPriceLabel:Set("Chromatizer Price: Chromatize Not Found")
+                end
+            else
+                ChromatizerPriceLabel:Set("Chromatizer Price: Chromatizer Not Found")
+            end
+        else
+            ChromatizerPriceLabel:Set("Chromatizer Price: Layers Not Found")
         end
     end)
     
     if not success then
         warn("Value update error: " .. tostring(err))
+        PrismsLabel:Set("Prisms: Error - " .. tostring(err))
+        ChromiumLabel:Set("Chromium: Error - " .. tostring(err))
+        EnergyLabel:Set("Energy: Error - " .. tostring(err))
+        FlameLabel:Set("Flame: Error - " .. tostring(err))
+        PowerLabel:Set("Power: Error - " .. tostring(err))
+        RPLabel:Set("Realm Points: Error - " .. tostring(err))
+        FleshLabel:Set("Flesh: Error - " .. tostring(err))
+        APLabel:Set("Arctic Points: Error - " .. tostring(err))
+        ChromatizerPriceLabel:Set("Chromatizer Price: Error - " .. tostring(err))
     end
 end
 
@@ -1504,24 +1635,36 @@ local function autoChromatize()
     local success, err = pcall(function()
         if not autoChromatizeEnabled then return end
         
-        -- Get current chromatizer price
-        local chromatizeButton = workspace.Layers.Chromatizer.Chromatize.Button.BillboardGui.Price
-        if chromatizeButton and chromatizeButton.Text then
-            local priceText = chromatizeButton.Text
+        -- Get current chromatizer price with safe navigation
+        local layers = workspace:FindFirstChild("Layers")
+        if not layers then return end
+        
+        local chromatizer = layers:FindFirstChild("Chromatizer")
+        if not chromatizer then return end
+        
+        local chromatize = chromatizer:FindFirstChild("Chromatize")
+        if not chromatize then return end
+        
+        local button = chromatize:FindFirstChild("Button")
+        if not button then return end
+        
+        local billboardGui = button:FindFirstChild("BillboardGui")
+        if not billboardGui then return end
+        
+        local priceLabel = billboardGui:FindFirstChild("Price")
+        if priceLabel and priceLabel.Text then
+            local priceText = priceLabel.Text
             local priceNumber = tonumber(priceText:match("%d+"))
             
             if priceNumber and prismsValue >= priceNumber then
                 -- Click chromatizer button
-                local button = workspace.Layers.Chromatizer.Chromatize.Button
-                if button then
-                    safeFireServer(game:GetService("ReplicatedStorage").Remotes.Chromatize)
-                    OrionLib:MakeNotification({
-                        Name = "Auto Chromatizer",
-                        Content = "Chromatized! Price: " .. priceText,
-                        Image = "rbxassetid://4483345998",
-                        Time = 2
-                    })
-                end
+                safeFireServer(game:GetService("ReplicatedStorage").Remotes.Chromatize)
+                OrionLib:MakeNotification({
+                    Name = "Auto Chromatizer",
+                    Content = "Chromatized! Price: " .. priceText,
+                    Image = "rbxassetid://4483345998",
+                    Time = 2
+                })
             end
         end
     end)
