@@ -44,7 +44,6 @@ local function loadOrionLib()
             warn("Failed to load OrionLib from source #" .. i .. ": " .. tostring(result))
             wait(0.5) -- Brief delay before trying next source
         end
-    end
     
     error("Critical error: All OrionLib sources failed to load. Please check your internet connection or try again later.")
 end
@@ -53,10 +52,10 @@ end
 local loadSuccess, loadResult = pcall(loadOrionLib)
 if loadSuccess then
     OrionLib = loadResult
-    print("✅ OrionLib loaded successfully!")
+    print("âœ… OrionLib loaded successfully!")
 else
-    warn("❌ Critical error loading OrionLib: " .. tostring(loadResult))
-    warn("💡 Possible solutions:")
+    warn("âŒ Critical error loading OrionLib: " .. tostring(loadResult))
+    warn("ðŸ’¡ Possible solutions:")
     warn("   1. Check your internet connection")
     warn("   2. Ensure HttpService is enabled in game settings")
     warn("   3. Try again in a few minutes")
@@ -82,11 +81,11 @@ local windowSuccess, windowError = pcall(function()
 end)
 
 if windowSuccess then
-    Window = windowError
-    print("✅ Main window created successfully!")
+    Window = windowError  -- windowError actually contains the window object when success is true
+    print("âœ… Main window created successfully!")
 else
-    warn("❌ Failed to create main window: " .. tostring(windowError))
-    warn("💡 This might be due to OrionLib compatibility issues")
+    warn("âŒ Failed to create main window: " .. tostring(windowError))
+    warn("ðŸ’¡ This might be due to OrionLib compatibility issues")
     return
 end
 
@@ -116,15 +115,11 @@ local function optimizeForMobile()
                     elseif descendant:IsA("Frame") and descendant.Name:find("Slider") then
                         descendant.Active = true
                     end
-                end
-            end
-        end
     end)
     
     if not success then
         warn("Mobile optimization failed: " .. tostring(err))
     end
-end
 
 -- Apply mobile optimizations after a short delay
 task.spawn(function()
@@ -184,13 +179,11 @@ task.spawn(function()
                         end
                     end)
                 end
-            end
         end)
         
         if not success then
             warn("Draggable fix failed: " .. tostring(err))
         end
-    end
     
     fixDraggableForMobile()
 end)
@@ -249,13 +242,11 @@ local function initializeEvents()
             if ReplicatedStorage.Framework.Events:FindFirstChild("Teleport_Realm") then
                 TeleportRealm = ReplicatedStorage.Framework.Events.Teleport_Realm
             end
-        end
     end)
     
     if not success then
         warn("Failed to initialize events: " .. tostring(err))
     end
-end
 
 initializeEvents()
 
@@ -267,6 +258,11 @@ local scriptRunning = true
 local antiAfkEnabled = true
 local autoAllRuneEnabled = false
 local autoAllRuneSpeed = 2
+local autoChromatizeEnabled = false
+local chromatizeCheckInterval = 1
+
+-- UI element references
+local currentConfigLabel = nil
 
 -- Config system
 local configFolderName = "AscenderIncrementalConfigs"
@@ -325,7 +321,6 @@ local function getConfigList()
                     if char == "/" or char == "\\" then
                         lastSlash = i
                     end
-                end
                 
                 if lastSlash > 0 then
                     name = name:sub(lastSlash + 1)
@@ -337,15 +332,12 @@ local function getConfigList()
                     if configName and configName ~= "" and configName ~= defaultConfigName then
                         return configName
                     end
-                end
                 return nil
             end)
             
             if success2 and fileName then
                 table.insert(configs, fileName)
             end
-        end
-    end
     
     -- Always include default config at the beginning
     table.insert(configs, 1, defaultConfigName)
@@ -396,7 +388,6 @@ local function saveConfig(configName)
             Time = 3
         })
     end
-end
 
 local function loadConfig(configName)
     configName = configName or currentConfigName
@@ -453,7 +444,6 @@ local function loadConfig(configName)
             Time = 3
         })
     end
-end
 
 -- Upgrade list for Ascender Incremental
 local upgradeListW1 = {
@@ -584,8 +574,6 @@ local function safeFireServer(event, ...)
             if retryCount < maxRetries then
                 task.wait(0.5) -- Wait before retry
             end
-        end
-    end
     
     return false
 end
@@ -602,7 +590,6 @@ local function teleportToPosition(position)
     if not success then
         warn("Teleport failed: " .. tostring(err))
     end
-end
 
 local function getCurrentPosition()
     local success, result = pcall(function()
@@ -618,7 +605,6 @@ local function getCurrentPosition()
     else
         return "Error getting position"
     end
-end
 
 -- TAB MAIN
 MainTab:AddLabel("Auto Features")
@@ -661,8 +647,6 @@ ConfigTab:AddTextbox({
                     Time = 3
                 })
             end
-        end
-    end
 })
 
 local configDropdown = ConfigTab:AddDropdown({
@@ -679,7 +663,6 @@ local configDropdown = ConfigTab:AddDropdown({
                 Time = 2
             })
         end
-    end
 })
 
 ConfigTab:AddButton({
@@ -710,7 +693,6 @@ ConfigTab:AddButton({
                 Time = 3
             })
         end
-    end
 })
 
 ConfigTab:AddButton({
@@ -725,7 +707,6 @@ ConfigTab:AddButton({
                 Time = 3
             })
         end
-    end
 })
 
 ConfigTab:AddButton({
@@ -772,7 +753,6 @@ ConfigTab:AddButton({
                 Time = 3
             })
         end
-    end
 })
 
 ConfigTab:AddButton({
@@ -812,8 +792,6 @@ ConfigTab:AddToggle({
                         if not success then
                             print("Auto-save failed for config: " .. tostring(currentConfigName))
                         end
-                    end
-                end
             end)
         end
         
@@ -911,7 +889,6 @@ MainTab:AddTextbox({
                 Time = 3
             })
         end
-    end
 })
 
 -- Chromatizer Check Interval
@@ -935,16 +912,14 @@ MainTab:AddTextbox({
                 Time = 3
             })
         end
-    end
 })
 
 -- Auto Rune (Single Rune Selection)
 local autoRuneEnabled = false
 local selectedRune = "5M Beginner"
 
--- Auto Chromatizer Level
-local autoChromatizeEnabled = false
-local chromatizeCheckInterval = 1
+-- Auto Chromatizer Level (using global variables declared earlier)
+-- autoChromatizeEnabled and chromatizeCheckInterval are already declared globally
 local prismsValue = 0
 local chromiumValue = 0
 
@@ -1299,7 +1274,6 @@ SettingsTab:AddButton({
                 Time = 2
             })
         end
-    end
 })
 
 -- Script Controls section removed as requested
@@ -1327,7 +1301,6 @@ task.spawn(function()
             else
                 warn("Anti AFK method 1 failed: " .. tostring(err))
             end
-        end
     end)
     
     -- Method 2: Periodic virtual input
@@ -1349,7 +1322,6 @@ task.spawn(function()
             if not success then
                 warn("Anti AFK method 2 failed: " .. tostring(err))
             end
-        end
         task.wait(300) -- Check every 5 minutes
     end
 end)
@@ -1406,7 +1378,6 @@ task.spawn(function()
                 
                 task.wait(autoAllRuneSpeed) -- Wait based on speed setting between each rune teleport
             end
-        end
          task.wait(0.1) -- Small wait to prevent lag
      end
  end)
@@ -1478,13 +1449,9 @@ task.spawn(function()
                                 else
                                     break
                                 end
-                            end
                         else
                             break
                         end
-                    end
-                end
-            end
         end)
         
         if not success then
@@ -1509,17 +1476,17 @@ local function toScientificNotation(gameValue)
         return "0"
     end
     
-    -- |y| là phần nguyên của y
+    -- |y| lÃ  pháº§n nguyÃªn cá»§a y
     local integerPart = math.floor(math.abs(y))
     
-    -- Áp dụng công thức: x = 10^(y-|y|) * e^|y|
-    -- Trong đó: y-|y| là phần thập phân
+    -- Ãp dá»¥ng cÃ´ng thá»©c: x = 10^(y-|y|) * e^|y|
+    -- Trong Ä‘Ã³: y-|y| lÃ  pháº§n tháº­p phÃ¢n
     local fractionalPart = y - integerPart
     
-    -- Tính x = 10^(fractionalPart) * e^(integerPart)
+    -- TÃ­nh x = 10^(fractionalPart) * e^(integerPart)
     local mantissa = (10 ^ fractionalPart) * math.exp(integerPart)
     
-    -- Chuyển về dạng scientific notation
+    -- Chuyá»ƒn vá» dáº¡ng scientific notation
     if mantissa == 0 then
         return "0"
     end
@@ -1562,7 +1529,6 @@ local function getValueSafely(valueObject)
                 local numValue = tonumber(parts[2])
                 return numValue or 0
             end
-        end
         
         -- Try to convert string to number directly
         local numValue = tonumber(rawValue)
@@ -1571,7 +1537,6 @@ local function getValueSafely(valueObject)
         -- If it's already a number, return it
         return tonumber(rawValue) or 0
     end
-end
 
 -- Function to get current values
 local function updateValues()
@@ -1706,7 +1671,6 @@ local function updateValues()
         APLabel:Set("Arctic Points: Error - " .. tostring(err))
         ChromatizerPriceLabel:Set("Chromatizer Price: Error - " .. tostring(err))
     end
-end
 
 -- Function to check and auto chromatize
 local function autoChromatize()
@@ -1743,13 +1707,11 @@ local function autoChromatize()
                     Time = 2
                 })
             end
-        end
     end)
     
     if not success then
         warn("Auto chromatize error: " .. tostring(err))
     end
-end
 
 -- Values monitor and auto chromatizer loop
 task.spawn(function()
@@ -1770,7 +1732,6 @@ task.spawn(function()
                     currentPosition = newPosition
                     PositionLabel:Set("Position: " .. currentPosition)
                 end
-            end
         end)
         
         if not success then
@@ -1823,7 +1784,6 @@ task.spawn(function()
                                         math.max(descendant.Size.Y.Offset, 30)
                                     )
                                 end
-                            end
                             
                             -- Enhance sliders for mobile
                             if descendant:IsA("Frame") and (descendant.Name:find("Slider") or descendant.Name:find("Bar")) then
@@ -1834,24 +1794,17 @@ task.spawn(function()
                                     if child:IsA("Frame") and child.Name:find("Handle") then
                                         child.Size = UDim2.new(0, 20, 1, 0) -- Larger handle
                                     end
-                                end
-                            end
                             
                             -- Enhance text inputs for mobile
                             if descendant:IsA("TextBox") then
                                 descendant.ClearTextOnFocus = false
                                 descendant.Active = true
                             end
-                        end
-                    end
-                end
-            end
         end)
         
         if not success then
             warn("Mobile enhancement failed: " .. tostring(err))
         end
-end
 
 -- Enhanced notification system without Image parameter
 local function showNotification(title, content, duration)
@@ -1870,20 +1823,19 @@ local function showNotification(title, content, duration)
         -- Fallback to print if notification fails
         print("[" .. title .. "] " .. content)
     end
-end
 
 -- Script completion notification
 showNotification(
-    "✅ Script Loaded Successfully!", 
+    "âœ… Script Loaded Successfully!", 
     "Ascender Incremental Hub is ready to use. All HTTP 404 errors have been fixed with multiple fallback sources.",
     8
 )
 
-print("🎉 Ascender Incremental Hub loaded successfully!")
-print("📝 All OrionLib Image parameters removed to prevent Frame errors")
-print("🔧 Multiple fallback sources implemented for reliability")
-print("📱 Mobile optimizations enabled")
-print("⚡ Enhanced error handling active")
+print("ðŸŽ‰ Ascender Incremental Hub loaded successfully!")
+print("ðŸ“ All OrionLib Image parameters removed to prevent Frame errors")
+print("ðŸ”§ Multiple fallback sources implemented for reliability")
+print("ðŸ“± Mobile optimizations enabled")
+print("âš¡ Enhanced error handling active")
 print("")
 print("If you encounter any issues, please check:")
 print("1. HttpService is enabled in game settings")
@@ -1911,8 +1863,6 @@ local function initializeConfig()
             Time = 3
         })
     end
-end
-
 initializeConfig()
 
 -- Script loaded notification with mobile detection
@@ -1934,3 +1884,31 @@ if game:GetService("UserInputService").TouchEnabled then
 end
 
 print("Ascender Incremental GUI Script loaded successfully on " .. deviceType .. "!")
+
+-- Close remaining blocks
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
