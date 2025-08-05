@@ -1502,18 +1502,41 @@ end
 local function getValueSafely(valueObject)
     if not valueObject then return 0 end
     
+    local rawValue
+    
     -- Handle different types of Value objects
     if valueObject.ClassName == "IntValue" or valueObject.ClassName == "NumberValue" then
-        return valueObject.Value or 0
+        rawValue = valueObject.Value
     elseif valueObject.ClassName == "StringValue" then
-        -- For StringValue, try to convert to number, otherwise return 0
-        local numValue = tonumber(valueObject.Value)
-        return numValue or 0
+        rawValue = valueObject.Value
     else
         -- Fallback: try .Value property first, then .Text
-        local value = valueObject.Value or valueObject.Text or 0
-        local numValue = tonumber(value)
+        rawValue = valueObject.Value or valueObject.Text
+    end
+    
+    if not rawValue then return 0 end
+    
+    -- Handle special format like "1;379.57798284067246"
+    if type(rawValue) == "string" then
+        -- Check if it contains semicolon (special format)
+        if rawValue:find(";") then
+            local parts = {}
+            for part in rawValue:gmatch("[^;]+") do
+                table.insert(parts, part)
+            end
+            -- Return the second part (actual value) if it exists
+            if #parts >= 2 then
+                local numValue = tonumber(parts[2])
+                return numValue or 0
+            end
+        end
+        
+        -- Try to convert string to number directly
+        local numValue = tonumber(rawValue)
         return numValue or 0
+    else
+        -- If it's already a number, return it
+        return tonumber(rawValue) or 0
     end
 end
 
