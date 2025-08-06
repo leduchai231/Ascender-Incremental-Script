@@ -1627,7 +1627,7 @@ task.spawn(function()
             warn("Auto Upgrade error: " .. tostring(err))
         end
         
-        task.wait(15) -- Wait 15 seconds before repeating
+        task.wait(0.5) -- Wait 15 seconds before repeating
     end
 end)
 
@@ -2074,11 +2074,31 @@ task.spawn(function()
     while scriptRunning do
         if autoLevelChromatizeEnabled then
             local success, err = pcall(function()
-                -- Get current Prisms from stats using EXACT same method as stat display
-                local currentPrisms = getCurrentPrisms()
-                local chromatizePrice = getChromatizePrice()
+                -- Wait for prices to load properly with retry mechanism
+                local currentPrisms = nil
+                local chromatizePrice = nil
+                local maxRetries = 5
+                local retryCount = 0
                 
-                if currentPrisms and chromatizePrice then
+                -- Retry getting prices until both are valid
+                while retryCount < maxRetries and (not currentPrisms or not chromatizePrice or currentPrisms == math.huge or chromatizePrice == math.huge) do
+                    task.wait(0.2) -- Wait for UI to load
+                    currentPrisms = getCurrentPrisms()
+                    chromatizePrice = getChromatizePrice()
+                    retryCount = retryCount + 1
+                    
+                    if currentPrisms == math.huge or chromatizePrice == math.huge then
+                        print("[DEBUG] Detected inf value, retrying... (" .. retryCount .. "/" .. maxRetries .. ")")
+                    elseif not currentPrisms or not chromatizePrice then
+                        print("[DEBUG] Price not loaded yet, retrying... (" .. retryCount .. "/" .. maxRetries .. ")")
+                    end
+                end
+                
+                -- Only proceed if we have valid, finite numbers
+                if currentPrisms and chromatizePrice and 
+                   currentPrisms ~= math.huge and chromatizePrice ~= math.huge and
+                   currentPrisms > 0 and chromatizePrice > 0 then
+                    
                     -- Compare the two numbers and show comparison result
                     print("[DEBUG] So sánh: " .. tostring(currentPrisms) .. " với " .. tostring(chromatizePrice))
                     
@@ -2087,7 +2107,7 @@ task.spawn(function()
                         
                         -- We have enough Prisms, teleport to chromatize button and upgrade
                         if teleportToChromatize() then
-                            task.wait(0.5) -- Wait for teleport to complete
+                            task.wait(1) -- Wait longer for teleport to complete and UI to load
                             if clickChromatizeButton() then
                                 OrionLib:MakeNotification({
                                     Name = "Auto Chromatize",
@@ -2114,6 +2134,8 @@ task.spawn(function()
                             end
                         end
                     end
+                else
+                    print("[DEBUG] Không thể lấy giá hợp lệ sau " .. maxRetries .. " lần thử. Đợi thêm...")
                 end
             end)
             
@@ -2122,7 +2144,7 @@ task.spawn(function()
             end
         end
         
-        task.wait(0.5) -- Check every 0.5 seconds
+        task.wait(1) -- Wait longer between checks to allow UI to load properly
     end
 end)
 
@@ -2172,4 +2194,4 @@ if game:GetService("UserInputService").TouchEnabled then
     })
 end
 
-print("Ascender Incremental GUI Script v1.5.6 loaded successfully on " .. deviceType .. "!")
+print("Ascender Incremental GUI Script v1.5.7 loaded successfully on " .. deviceType .. "!")
