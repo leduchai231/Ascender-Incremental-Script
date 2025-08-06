@@ -3,10 +3,7 @@
 local SCRIPT_VERSION = "1.8.0"
 local SCRIPT_URL = "https://raw.githubusercontent.com/leduchai231/Ascender-Incremental-Script/refs/heads/main/mainv2.lua"
 
--- Initialize global environment for auto-execute system
-if not getgenv().ASCENDER_SCRIPT_SOURCE then
-    getgenv().ASCENDER_SCRIPT_SOURCE = game:HttpGet(SCRIPT_URL)
-end
+-- Auto-execute system removed per user request
 
 -- Load OrionLib with mobile fixes
 local OrionLib
@@ -226,7 +223,7 @@ local autoAllRuneEnabled = false
 local autoAllRuneSpeed = 2
 local autoLevelChromatizeEnabled = false
 local autoLoadConfigEnabled = true
-local autoExecuteOnRejoinEnabled = false
+-- Auto execute on rejoin feature removed per user request
 local chromatizeRuneSelection = "5M Beginner"
 local autoUpgradeSpeed = 0.1
 
@@ -243,7 +240,7 @@ local defaultConfig = {
     autoUpgradeSpeed = 0.1,
     autoLevelChromatizeEnabled = false,
     autoLoadConfigEnabled = true,
-    autoExecuteOnRejoinEnabled = false,
+    -- autoExecuteOnRejoinEnabled removed
     chromatizeRuneSelection = "5M Beginner"
 }
 
@@ -336,7 +333,7 @@ local function saveConfig(configName)
         autoUpgradeSpeed = autoUpgradeSpeed,
         autoLevelChromatizeEnabled = autoLevelChromatizeEnabled,
         autoLoadConfigEnabled = autoLoadConfigEnabled,
-        autoExecuteOnRejoinEnabled = autoExecuteOnRejoinEnabled,
+        -- autoExecuteOnRejoinEnabled removed from config save
         chromatizeRuneSelection = chromatizeRuneSelection
     }
     
@@ -399,7 +396,7 @@ local function loadConfig(configName)
         autoUpgradeSpeed = result.autoUpgradeSpeed or defaultConfig.autoUpgradeSpeed
         autoLevelChromatizeEnabled = result.autoLevelChromatizeEnabled or defaultConfig.autoLevelChromatizeEnabled
         autoLoadConfigEnabled = result.autoLoadConfigEnabled or defaultConfig.autoLoadConfigEnabled
-        autoExecuteOnRejoinEnabled = result.autoExecuteOnRejoinEnabled or defaultConfig.autoExecuteOnRejoinEnabled
+        -- autoExecuteOnRejoinEnabled removed from config load
         chromatizeRuneSelection = result.chromatizeRuneSelection or defaultConfig.chromatizeRuneSelection
         
         currentConfigName = configName
@@ -427,9 +424,7 @@ local function loadConfig(configName)
             if toggleReferences.autoLoadConfig then
                 toggleReferences.autoLoadConfig:Set(autoLoadConfigEnabled)
             end
-            if toggleReferences.autoExecuteOnRejoin then
-                toggleReferences.autoExecuteOnRejoin:Set(autoExecuteOnRejoinEnabled)
-            end
+            -- autoExecuteOnRejoin toggle removed
             if toggleReferences.chromatizeRuneDropdown then
                 toggleReferences.chromatizeRuneDropdown:Set(chromatizeRuneSelection)
             end
@@ -454,7 +449,7 @@ local function loadConfig(configName)
         autoUpgradeSpeed = 0.1
         autoLevelChromatizeEnabled = false
         autoLoadConfigEnabled = false
-        autoExecuteOnRejoinEnabled = false
+        -- autoExecuteOnRejoinEnabled removed from reset
         chromatizeRuneSelection = "5M Beginner"
         
         OrionLib:MakeNotification({
@@ -892,7 +887,7 @@ ConfigTab:AddButton({
     Name = "Show Current Settings",
     Callback = function()
         local configInfo = string.format(
-            "Config: %s\nAnti AFK: %s\nAuto Upgrade: %s\nUpgrade Type: %s\nAuto All Rune: %s\nRune Speed: %.2fs\nAuto Chromatize: %s\nAuto Load Config: %s\nAuto Execute on Rejoin: %s",
+            "Config: %s\nAnti AFK: %s\nAuto Upgrade: %s\nUpgrade Type: %s\nAuto All Rune: %s\nRune Speed: %.2fs\nAuto Chromatize: %s\nAuto Load Config: %s",
             currentConfigName,
             antiAfkEnabled and "ON" or "OFF",
             autoUpgradeEnabled and "ON" or "OFF",
@@ -900,8 +895,7 @@ ConfigTab:AddButton({
             autoAllRuneEnabled and "ON" or "OFF",
             autoAllRuneSpeed,
             autoLevelChromatizeEnabled and "ON" or "OFF",
-            autoLoadConfigEnabled and "ON" or "OFF",
-            autoExecuteOnRejoinEnabled and "ON" or "OFF"
+            autoLoadConfigEnabled and "ON" or "OFF"
         )
         
         OrionLib:MakeNotification({
@@ -1430,27 +1424,7 @@ toggleReferences.antiAfk = SettingsTab:AddToggle({
     end
 })
 
-toggleReferences.autoExecuteOnRejoin = SettingsTab:AddToggle({
-    Name = "Auto Execute Script When Rejoin",
-    Default = autoExecuteOnRejoinEnabled,
-    Callback = function(Value)
-        autoExecuteOnRejoinEnabled = Value
-        if Value then
-            -- Store script source in global environment for auto-execute
-            getgenv().ASCENDER_SCRIPT_SOURCE = game:HttpGet(SCRIPT_URL)
-        else
-            -- Clear global environment variables
-            getgenv().ASCENDER_AUTO_EXECUTE = nil
-            getgenv().ASCENDER_SCRIPT_SOURCE = nil
-        end
-        OrionLib:MakeNotification({
-            Name = "Auto Execute",
-            Content = Value and "Auto execute on rejoin enabled (using global environment)" or "Auto execute on rejoin disabled",
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
-    end
-})
+-- Auto Execute on Rejoin toggle removed per user request
 
 SettingsTab:AddButton({
     Name = "Server Hop",
@@ -2471,53 +2445,7 @@ if autoLoadConfigEnabled then
     end)
 end
 
--- Enhanced Auto Execute on Rejoin using global environment
-task.spawn(function()
-    -- Check for auto-execute flag in global environment
-    if getgenv().ASCENDER_AUTO_EXECUTE then
-        task.wait(2) -- Brief wait for game to load
-        
-        autoExecuteOnRejoinEnabled = true
-        
-        OrionLib:MakeNotification({
-            Name = "Auto Execute",
-            Content = "Auto-execute detected! Reloading script...",
-            Image = "rbxassetid://4483345998",
-            Time = 3
-        })
-        
-        -- Execute the script from global environment
-        local success, executeError = pcall(function()
-            local scriptSource = getgenv().ASCENDER_SCRIPT_SOURCE
-            if scriptSource then
-                loadstring(scriptSource)()
-            else
-                -- Fallback to default script URL
-                loadstring(game:HttpGet(SCRIPT_URL))()
-            end
-        end)
-        
-        if success then
-            OrionLib:MakeNotification({
-                Name = "Auto Execute",
-                Content = "Script auto-executed successfully!",
-                Image = "rbxassetid://4483345998",
-                Time = 3
-            })
-            -- Clear the auto-execute flag
-            getgenv().ASCENDER_AUTO_EXECUTE = nil
-        else
-            OrionLib:MakeNotification({
-                Name = "Auto Execute Error",
-                Content = "Failed to auto-execute: " .. tostring(executeError),
-                Image = "rbxassetid://4483345998",
-                Time = 5
-            })
-            -- Clear the auto-execute flag even on error
-            getgenv().ASCENDER_AUTO_EXECUTE = nil
-        end
-    end
-end)
+-- Auto Execute on Rejoin system removed per user request
 
 -- Save last used config when config changed
 local originalSaveConfig = saveConfig
@@ -2533,25 +2461,8 @@ saveConfig = function(configName)
     end
 end
 
--- Script loaded notification with mobile detection
+-- Script loaded notification disabled per user request
 local deviceType = game:GetService("UserInputService").TouchEnabled and "Mobile" or "PC"
-OrionLib:MakeNotification({
-    Name = "Ascender Incremental Hub",
-    Content = "Script loaded successfully on " .. deviceType .. "! Welcome to Ascender Incremental Hub!",
-    Image = "rbxassetid://4483345998",
-    Time = 5
-})
-
--- Additional mobile instructions
-if game:GetService("UserInputService").TouchEnabled then
-    task.wait(2)
-    OrionLib:MakeNotification({
-        Name = "Mobile Tips",
-        Content = "Mobile optimizations applied! Use 'Toggle GUI (Mobile)' button if keybind doesn't work.",
-        Image = "rbxassetid://4483345998",
-        Time = 7
-    })
-end
 
 -- Auto Rejoin on Disconnect
 local Players = game:GetService("Players")
@@ -2567,12 +2478,6 @@ local function autoRejoin(reason)
             Image = "rbxassetid://4483345998",
             Time = 3
         })
-        
-        -- Store script source in global environment for auto-execute
-        if autoExecuteOnRejoinEnabled then
-            getgenv().ASCENDER_AUTO_EXECUTE = true
-            getgenv().ASCENDER_SCRIPT_SOURCE = game:HttpGet(SCRIPT_URL)
-        end
         
         task.wait(2) -- Brief delay before rejoining
         
@@ -2611,18 +2516,36 @@ game:GetService("GuiService").ErrorMessageChanged:Connect(function()
     end
 end)
 
--- Monitor player connection status
+-- Enhanced player monitoring with auto rejoin
 task.spawn(function()
-    while scriptRunning and Players.LocalPlayer do
-        task.wait(3)
+    while scriptRunning do
+        task.wait(5) -- Check every 5 seconds
         
-        -- Check if player is still connected
-        local success = pcall(function()
-            return Players.LocalPlayer.Parent and Players.LocalPlayer.Character
+        local success, playerExists = pcall(function()
+            local localPlayer = Players.LocalPlayer
+            if not localPlayer then
+                return false
+            end
+            
+            -- Check if player still exists in Players service
+            local playerInService = false
+            for _, player in pairs(Players:GetPlayers()) do
+                if player == localPlayer then
+                    playerInService = true
+                    break
+                end
+            end
+            
+            -- Check if player has valid parent and character
+            local hasValidParent = localPlayer.Parent ~= nil
+            local hasCharacter = localPlayer.Character ~= nil
+            
+            return playerInService and hasValidParent and hasCharacter
         end)
         
-        if not success or not Players.LocalPlayer.Parent then
-            handleDisconnect("Connection Lost")
+        -- If player check failed or player doesn't exist, attempt rejoin
+        if not success or not playerExists then
+            handleDisconnect("Player Lost from Game")
             break
         end
     end
