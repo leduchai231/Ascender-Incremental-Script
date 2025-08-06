@@ -159,7 +159,7 @@ local MainTab = Window:MakeTab({
 })
 
 local TalentTreeTab = Window:MakeTab({
-    Name = "Talent Tree Upgrade",
+    Name = "Talent Tree",
     Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
@@ -874,6 +874,34 @@ TalentTreeTab:AddDropdown({
     end
 })
 
+-- Auto Upgrade Speed Setting
+local autoUpgradeSpeed = 0.1 -- Default speed
+
+TalentTreeTab:AddTextbox({
+    Name = "Auto Upgrade Speed (seconds)",
+    Default = "0.1",
+    TextDisappear = false,
+    Callback = function(Value)
+        local numValue = tonumber(Value)
+        if numValue and numValue >= 0.01 and numValue <= 5 then
+            autoUpgradeSpeed = numValue
+            OrionLib:MakeNotification({
+                Name = "Speed Setting",
+                Content = "Auto upgrade speed set to " .. numValue .. " seconds",
+                Image = "rbxassetid://4483345998",
+                Time = 2
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Invalid Input",
+                Content = "Please enter a number between 0.01 and 5",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
 TalentTreeTab:AddToggle({
     Name = "Auto Upgrade",
     Default = false,
@@ -1521,29 +1549,74 @@ task.spawn(function()
     while scriptRunning do
         local success, err = pcall(function()
             if autoUpgradeEnabled and BuyUpgrade and scriptRunning then
-                local currentUpgradeList
-                
                 if selectedUpgradeType == "W1" then
-                    currentUpgradeList = upgradeListW1
-                elseif selectedUpgradeType == "W2" then
-                    currentUpgradeList = upgradeListW2
-                elseif selectedUpgradeType == "W1+W2" then
-                    currentUpgradeList = upgradeListW1W2
-                end
-                
-                if currentUpgradeList then
-                    for _, upgrade in ipairs(currentUpgradeList) do
+                    -- W1 only
+                    for _, upgrade in ipairs(upgradeListW1) do
                         if autoUpgradeEnabled and scriptRunning then
                             for i = 1, upgrade.times do
                                 if autoUpgradeEnabled and scriptRunning then
                                     safeFireServer(BuyUpgrade, upgrade.name)
-                                    task.wait(0.1)
+                                    task.wait(autoUpgradeSpeed)
                                 else
                                     break
                                 end
                             end
                         else
                             break
+                        end
+                    end
+                elseif selectedUpgradeType == "W2" then
+                    -- W2 only
+                    for _, upgrade in ipairs(upgradeListW2) do
+                        if autoUpgradeEnabled and scriptRunning then
+                            for i = 1, upgrade.times do
+                                if autoUpgradeEnabled and scriptRunning then
+                                    safeFireServer(BuyUpgrade, upgrade.name)
+                                    task.wait(autoUpgradeSpeed)
+                                else
+                                    break
+                                end
+                            end
+                        else
+                            break
+                        end
+                    end
+                elseif selectedUpgradeType == "W1+W2" then
+                    -- W1+W2 parallel: alternate between W1 and W2 upgrades
+                    local w1Index = 1
+                    local w2Index = 1
+                    local w1Times = 0
+                    local w2Times = 0
+                    
+                    while (w1Index <= #upgradeListW1 or w2Index <= #upgradeListW2) and autoUpgradeEnabled and scriptRunning do
+                        -- Try to upgrade from W1
+                        if w1Index <= #upgradeListW1 and autoUpgradeEnabled and scriptRunning then
+                            local w1Upgrade = upgradeListW1[w1Index]
+                            if w1Times < w1Upgrade.times then
+                                safeFireServer(BuyUpgrade, w1Upgrade.name)
+                                w1Times = w1Times + 1
+                                task.wait(autoUpgradeSpeed)
+                                
+                                if w1Times >= w1Upgrade.times then
+                                    w1Index = w1Index + 1
+                                    w1Times = 0
+                                end
+                            end
+                        end
+                        
+                        -- Try to upgrade from W2
+                        if w2Index <= #upgradeListW2 and autoUpgradeEnabled and scriptRunning then
+                            local w2Upgrade = upgradeListW2[w2Index]
+                            if w2Times < w2Upgrade.times then
+                                safeFireServer(BuyUpgrade, w2Upgrade.name)
+                                w2Times = w2Times + 1
+                                task.wait(autoUpgradeSpeed)
+                                
+                                if w2Times >= w2Upgrade.times then
+                                    w2Index = w2Index + 1
+                                    w2Times = 0
+                                end
+                            end
                         end
                     end
                 end
@@ -2049,7 +2122,7 @@ task.spawn(function()
             end
         end
         
-        task.wait(3) -- Check every 3 seconds
+        task.wait(0.5) -- Check every 0.5 seconds
     end
 end)
 
