@@ -1900,7 +1900,7 @@ initializeConfig()
 -- Script loaded notification with mobile detection
 local deviceType = game:GetService("UserInputService").TouchEnabled and "Mobile" or "PC"
 OrionLib:MakeNotification({
-    Name = "Ascender Incremental Hub",
+    Name = "Ascender Incremental Hub Version 1",
     Content = "Script loaded successfully on " .. deviceType .. "! Welcome to Ascender Incremental Hub!",
     Image = "rbxassetid://4483345998",
     Time = 5
