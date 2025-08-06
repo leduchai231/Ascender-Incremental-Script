@@ -2519,7 +2519,7 @@ end)
 -- Enhanced player monitoring with auto rejoin
 task.spawn(function()
     while scriptRunning do
-        task.wait(5) -- Check every 5 seconds
+        task.wait(0.1) -- Check every 5 seconds
         
         local success, playerExists = pcall(function()
             local localPlayer = Players.LocalPlayer
