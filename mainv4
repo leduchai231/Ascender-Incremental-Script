@@ -34,12 +34,12 @@ end
 
 -- Create main Window with mobile optimizations
 local Window = OrionLib:MakeWindow({
-    Name = "Ascender Incremental Hub",
+    Name = "Ascender Incremental Hub v1.2.0",
     HidePremium = false,
     SaveConfig = true,
     ConfigFolder = "AscenderIncrementalConfig",
     IntroEnabled = true,
-    IntroText = "Ascender Incremental Script",
+    IntroText = "Ascender Incremental Script v1.2.0",
     Icon = "rbxassetid://4483345998"
 })
 
@@ -1581,12 +1581,33 @@ local function getStatValue(statPath)
         
         local stat = player.Stats:FindFirstChild(statPath)
         if stat and stat.Value then
+            -- Always return the original stat.Value for consistency
+            return stat.Value
+        end
+        return nil
+    end)
+    
+    if success then
+        return result
+    else
+        return nil
+    end
+end
+
+-- Function to get formatted stat value for display (handles semicolon values)
+local function getFormattedStatValue(statPath)
+    local success, result = pcall(function()
+        local player = game:GetService("Players").LocalPlayer
+        if not player or not player.Stats then return nil end
+        
+        local stat = player.Stats:FindFirstChild(statPath)
+        if stat and stat.Value then
             local value = tostring(stat.Value)
-            -- Check if value contains semicolon and extract part after it
+            -- Check if value contains semicolon and extract part after it for display
             if string.find(value, ";") then
                 local parts = string.split(value, ";")
                 if #parts >= 2 then
-                    return parts[2]  -- Return the string after semicolon without converting to number
+                    return parts[2]  -- Return the formatted string after semicolon for display
                 end
             end
             return stat.Value
@@ -1604,21 +1625,21 @@ end
 -- Function to update all stat labels
 local function updateStatLabels()
     local success, err = pcall(function()
-        -- Get all stat values
-        local energy = getStatValue("Energy")
-        local flame = getStatValue("Flame")
-        local power = getStatValue("Power")
-        local realmPoints = getStatValue("Realm Points")
-        local flesh = getStatValue("Flesh")
-        local prisms = getStatValue("Prisms")
-        local orbs = getStatValue("Orbs")
-        local spheres = getStatValue("Spheres")
-        local droplets = getStatValue("Droplets")
-        local water = getStatValue("Water")
-        local arcticPoints = getStatValue("ArcticPoints")
-        local ice = getStatValue("Ice")
-        local chromium = getStatValue("Chromium")
-        local icicles = getStatValue("Icicles")
+        -- Get all stat values for display (formatted)
+        local energy = getFormattedStatValue("Energy")
+        local flame = getFormattedStatValue("Flame")
+        local power = getFormattedStatValue("Power")
+        local realmPoints = getFormattedStatValue("Realm Points")
+        local flesh = getFormattedStatValue("Flesh")
+        local prisms = getFormattedStatValue("Prisms")
+        local orbs = getFormattedStatValue("Orbs")
+        local spheres = getFormattedStatValue("Spheres")
+        local droplets = getFormattedStatValue("Droplets")
+        local water = getFormattedStatValue("Water")
+        local arcticPoints = getFormattedStatValue("ArcticPoints")
+        local ice = getFormattedStatValue("Ice")
+        local chromium = getFormattedStatValue("Chromium")
+        local icicles = getFormattedStatValue("Icicles")
         
         -- Update labels with formatted values using safer method
         local function safeUpdateLabel(label, text)
@@ -1822,8 +1843,11 @@ end
 
 -- Function to get current Prisms using same method as stats
 local function getCurrentPrisms()
-    local prisms = getStatValue("Prisms")
-    print("[DEBUG] getCurrentPrisms - Raw value from getStatValue: " .. tostring(prisms))
+    local prisms = getStatValue("Prisms")  -- Get raw stat value for numeric comparison
+    local formattedPrisms = getFormattedStatValue("Prisms")  -- Get formatted value for display comparison
+    
+    print("[DEBUG] getCurrentPrisms - Raw value from getStatValue: " .. tostring(prisms) .. " (type: " .. type(prisms) .. ")")
+    print("[DEBUG] getCurrentPrisms - Formatted value from getFormattedStatValue: " .. tostring(formattedPrisms))
     
     if prisms then
         -- If it's already a number, return it
