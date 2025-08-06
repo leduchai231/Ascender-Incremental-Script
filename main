@@ -871,13 +871,6 @@ MainTab:AddToggle({
     end
 })
 
--- Create Stat Tab after Main Tab
-local StatTab = Window:MakeTab({
-    Name = "Stat",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
 -- Auto Rune (Single Rune Selection)
 local autoRuneEnabled = false
 local selectedRune = "5M Beginner"
@@ -920,6 +913,13 @@ MainTab:AddToggle({
             Time = 2
         })
     end
+})
+
+-- Create Stat Tab after Main Tab
+local StatTab = Window:MakeTab({
+    Name = "Stat",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
 })
 
 -- TAB TELEPORT
@@ -1669,29 +1669,52 @@ StatTab:AddButton({
 -- Function to get Chromatize price from workspace
 local function getChromatizePrice()
     local success, result = pcall(function()
+        print("[DEBUG] Attempting to get Chromatize price...")
         local chromatizeButton = workspace:FindFirstChild("Layers")
         if chromatizeButton then
+            print("[DEBUG] Found Layers")
             chromatizeButton = chromatizeButton:FindFirstChild("Chromatizer")
             if chromatizeButton then
+                print("[DEBUG] Found Chromatizer")
                 chromatizeButton = chromatizeButton:FindFirstChild("Chromatize")
                 if chromatizeButton then
+                    print("[DEBUG] Found Chromatize")
                     chromatizeButton = chromatizeButton:FindFirstChild("Button")
                     if chromatizeButton then
+                        print("[DEBUG] Found Button")
                         local billboardGui = chromatizeButton:FindFirstChild("BillboardGui")
                         if billboardGui then
+                            print("[DEBUG] Found BillboardGui")
                             local priceLabel = billboardGui:FindFirstChild("Price")
                             if priceLabel and priceLabel.Text then
                                 local text = priceLabel.Text
+                                print("[DEBUG] Price text found: " .. tostring(text))
                                 -- Extract number from text like "5e178 PRISMS"
                                 local numberStr = text:match("([%d%.e%-+]+)%s*PRISMS")
                                 if numberStr then
-                                    return tonumber(numberStr)
+                                    local price = tonumber(numberStr)
+                                    print("[DEBUG] Extracted price: " .. tostring(price))
+                                    return price
+                                else
+                                    print("[DEBUG] Could not extract number from text: " .. text)
                                 end
+                            else
+                                print("[DEBUG] Price label not found or no text")
                             end
+                        else
+                            print("[DEBUG] BillboardGui not found")
                         end
+                    else
+                        print("[DEBUG] Button not found")
                     end
+                else
+                    print("[DEBUG] Chromatize not found")
                 end
+            else
+                print("[DEBUG] Chromatizer not found")
             end
+        else
+            print("[DEBUG] Layers not found in workspace")
         end
         return nil
     end)
@@ -1699,6 +1722,7 @@ local function getChromatizePrice()
     if success then
         return result
     else
+        print("[DEBUG] Error getting Chromatize price: " .. tostring(result))
         return nil
     end
 end
@@ -1706,20 +1730,34 @@ end
 -- Function to teleport to Chromatize button
 local function teleportToChromatize()
     local success, err = pcall(function()
+        print("[DEBUG] Attempting to teleport to Chromatize button...")
         local chromatizeButton = workspace:FindFirstChild("Layers")
         if chromatizeButton then
+            print("[DEBUG] Found Layers for teleport")
             chromatizeButton = chromatizeButton:FindFirstChild("Chromatizer")
             if chromatizeButton then
+                print("[DEBUG] Found Chromatizer for teleport")
                 chromatizeButton = chromatizeButton:FindFirstChild("Chromatize")
                 if chromatizeButton then
+                    print("[DEBUG] Found Chromatize for teleport")
                     chromatizeButton = chromatizeButton:FindFirstChild("Button")
                     if chromatizeButton and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
                         local buttonPosition = chromatizeButton.Position
+                        print("[DEBUG] Button position: " .. tostring(buttonPosition))
                         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(buttonPosition + Vector3.new(0, 5, 0))
+                        print("[DEBUG] Teleported successfully to Chromatize button")
                         return true
+                    else
+                        print("[DEBUG] Button not found or character/HumanoidRootPart missing")
                     end
+                else
+                    print("[DEBUG] Chromatize not found for teleport")
                 end
+            else
+                print("[DEBUG] Chromatizer not found for teleport")
             end
+        else
+            print("[DEBUG] Layers not found for teleport")
         end
         return false
     end)
@@ -1727,7 +1765,7 @@ local function teleportToChromatize()
     if success then
         return true
     else
-        warn("Failed to teleport to Chromatize button: " .. tostring(err))
+        print("[DEBUG] Failed to teleport to Chromatize button: " .. tostring(err))
         return false
     end
 end
@@ -1735,19 +1773,33 @@ end
 -- Function to click Chromatize button
 local function clickChromatizeButton()
     local success, err = pcall(function()
+        print("[DEBUG] Attempting to click Chromatize button...")
         local chromatizeButton = workspace:FindFirstChild("Layers")
         if chromatizeButton then
+            print("[DEBUG] Found Layers for click")
             chromatizeButton = chromatizeButton:FindFirstChild("Chromatizer")
             if chromatizeButton then
+                print("[DEBUG] Found Chromatizer for click")
                 chromatizeButton = chromatizeButton:FindFirstChild("Chromatize")
                 if chromatizeButton then
+                    print("[DEBUG] Found Chromatize for click")
                     chromatizeButton = chromatizeButton:FindFirstChild("Button")
                     if chromatizeButton and chromatizeButton:FindFirstChild("ClickDetector") then
+                        print("[DEBUG] Found Button and ClickDetector, clicking...")
                         fireclickdetector(chromatizeButton.ClickDetector)
+                        print("[DEBUG] Successfully clicked Chromatize button")
                         return true
+                    else
+                        print("[DEBUG] Button or ClickDetector not found")
                     end
+                else
+                    print("[DEBUG] Chromatize not found for click")
                 end
+            else
+                print("[DEBUG] Chromatizer not found for click")
             end
+        else
+            print("[DEBUG] Layers not found for click")
         end
         return false
     end)
@@ -1755,7 +1807,7 @@ local function clickChromatizeButton()
     if success then
         return true
     else
-        warn("Failed to click Chromatize button: " .. tostring(err))
+        print("[DEBUG] Failed to click Chromatize button: " .. tostring(err))
         return false
     end
 end
@@ -1764,35 +1816,55 @@ end
 task.spawn(function()
     while scriptRunning do
         if autoLevelChromatizeEnabled then
+            print("[DEBUG] Auto Level Chromatize is enabled, checking...")
             local success, err = pcall(function()
                 -- Get current Prisms from stats
                 local currentPrisms = getStatValue("Prisms")
                 local chromatizePrice = getChromatizePrice()
                 
+                print("[DEBUG] Current Prisms (raw): " .. tostring(currentPrisms))
+                print("[DEBUG] Chromatize Price: " .. tostring(chromatizePrice))
+                
                 if currentPrisms and chromatizePrice then
                     local currentPrismsNum = tonumber(currentPrisms)
+                    print("[DEBUG] Current Prisms (number): " .. tostring(currentPrismsNum))
                     
                     if currentPrismsNum and currentPrismsNum >= chromatizePrice then
+                        print("[DEBUG] User has enough Prisms! Attempting to upgrade...")
                         -- We have enough Prisms, teleport and upgrade
                         if teleportToChromatize() then
                             task.wait(0.5) -- Wait for teleport to complete
                             if clickChromatizeButton() then
+                                print("[DEBUG] Successfully clicked Chromatize button!")
                                 OrionLib:MakeNotification({
                                     Name = "Auto Chromatize",
                                     Content = "Successfully upgraded Chromatize level!",
                                     Image = "rbxassetid://4483345998",
                                     Time = 2
                                 })
+                            else
+                                print("[DEBUG] Failed to click Chromatize button")
                             end
+                        else
+                            print("[DEBUG] Failed to teleport to Chromatize button")
+                        end
+                    else
+                        print("[DEBUG] Not enough Prisms for upgrade")
+                        if currentPrismsNum then
+                            print("[DEBUG] Need " .. tostring(chromatizePrice - currentPrismsNum) .. " more Prisms")
                         end
                     end
                     -- If not enough Prisms, stay at current position and wait
+                else
+                    print("[DEBUG] Failed to get current Prisms or Chromatize price")
                 end
             end)
             
             if not success then
-                warn("Auto Level Chromatize error: " .. tostring(err))
+                print("[DEBUG] Auto Level Chromatize error: " .. tostring(err))
             end
+        else
+            print("[DEBUG] Auto Level Chromatize is disabled")
         end
         
         task.wait(3) -- Check every 3 seconds
