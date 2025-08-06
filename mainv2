@@ -1812,14 +1812,19 @@ local function clickChromatizeButton()
     end
 end
 
+-- Function to get current Prisms using same method as stats
+local function getCurrentPrisms()
+    return getStatValue("Prisms")
+end
+
 -- Auto Level Chromatize loop
 task.spawn(function()
     while scriptRunning do
         if autoLevelChromatizeEnabled then
             print("[DEBUG] Auto Level Chromatize is enabled, checking...")
             local success, err = pcall(function()
-                -- Get current Prisms from stats
-                local currentPrisms = getStatValue("Prisms")
+                -- Get current Prisms from stats using same method as stat display
+                local currentPrisms = getCurrentPrisms()
                 local chromatizePrice = getChromatizePrice()
                 
                 print("[DEBUG] Current Prisms (raw): " .. tostring(currentPrisms))
