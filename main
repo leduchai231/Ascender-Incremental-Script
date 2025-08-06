@@ -1517,17 +1517,8 @@ local function formatNumber(num)
     local numValue = tonumber(num)
     if not numValue then return tostring(num) end
     
-    if numValue >= 1e12 then
-        return string.format("%.2fT", numValue / 1e12)
-    elseif numValue >= 1e9 then
-        return string.format("%.2fB", numValue / 1e9)
-    elseif numValue >= 1e6 then
-        return string.format("%.2fM", numValue / 1e6)
-    elseif numValue >= 1e3 then
-        return string.format("%.2fK", numValue / 1e3)
-    else
-        return string.format("%.0f", numValue)
-    end
+    -- Return the original number without abbreviations
+    return string.format("%.0f", numValue)
 end
 
 -- Function to safely get stat value
