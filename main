@@ -1538,6 +1538,14 @@ local function getStatValue(statPath)
         
         local stat = player.Stats:FindFirstChild(statPath)
         if stat and stat.Value then
+            local value = tostring(stat.Value)
+            -- Check if value contains semicolon and extract part after it
+            if string.find(value, ";") then
+                local parts = string.split(value, ";")
+                if #parts >= 2 then
+                    return tonumber(parts[2]) or parts[2]
+                end
+            end
             return stat.Value
         end
         return nil
