@@ -1534,7 +1534,7 @@ local function getStatValue(statPath)
             if string.find(value, ";") then
                 local parts = string.split(value, ";")
                 if #parts >= 2 then
-                    return tonumber(parts[2]) or parts[2]
+                    return parts[2]  -- Return the string after semicolon without converting to number
                 end
             end
             return stat.Value
