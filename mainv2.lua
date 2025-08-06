@@ -1,6 +1,12 @@
 
 -- Script Version Configuration
 local SCRIPT_VERSION = "1.8.0"
+local SCRIPT_URL = "https://raw.githubusercontent.com/leduchai231/Ascender-Incremental-Script/refs/heads/main/mainv2.lua"
+
+-- Initialize global environment for auto-execute system
+if not getgenv().ASCENDER_SCRIPT_SOURCE then
+    getgenv().ASCENDER_SCRIPT_SOURCE = game:HttpGet(SCRIPT_URL)
+end
 
 -- Load OrionLib with mobile fixes
 local OrionLib
@@ -221,6 +227,8 @@ local autoAllRuneSpeed = 2
 local autoLevelChromatizeEnabled = false
 local autoLoadConfigEnabled = true
 local autoExecuteOnRejoinEnabled = false
+local chromatizeRuneSelection = "5M Beginner"
+local autoUpgradeSpeed = 0.1
 
 -- Config system
 local configFolderName = "AscenderIncrementalConfigs"
@@ -437,19 +445,21 @@ local function loadConfig(configName)
             Time = 2
         })
     else
-        -- Use default values
-        antiAfkEnabled = defaultConfig.antiAfkEnabled
-        autoUpgradeEnabled = defaultConfig.autoUpgradeEnabled
-        selectedUpgradeType = defaultConfig.selectedUpgradeType
-        autoAllRuneEnabled = defaultConfig.autoAllRuneEnabled
-        autoAllRuneSpeed = defaultConfig.autoAllRuneSpeed
-        autoLevelChromatizeEnabled = defaultConfig.autoLevelChromatizeEnabled
-        autoLoadConfigEnabled = defaultConfig.autoLoadConfigEnabled
-        autoExecuteOnRejoinEnabled = defaultConfig.autoExecuteOnRejoinEnabled
+        -- Reset to initial state (no default config applied)
+        antiAfkEnabled = false
+        autoUpgradeEnabled = false
+        selectedUpgradeType = "W1"
+        autoAllRuneEnabled = false
+        autoAllRuneSpeed = 2
+        autoUpgradeSpeed = 0.1
+        autoLevelChromatizeEnabled = false
+        autoLoadConfigEnabled = false
+        autoExecuteOnRejoinEnabled = false
+        chromatizeRuneSelection = "5M Beginner"
         
         OrionLib:MakeNotification({
             Name = "Config Error",
-            Content = "Failed to load configuration '" .. configName .. "', using defaults",
+            Content = "Failed to load configuration '" .. configName .. "', reset to initial state",
             Image = "rbxassetid://4483345998",
             Time = 3
         })
@@ -625,17 +635,11 @@ end
 MainTab:AddLabel("Script Information")
 
 MainTab:AddLabel("Version: " .. SCRIPT_VERSION)
-MainTab:AddLabel("Last Updated: 2024-12-19")
+MainTab:AddLabel("Last Updated: 2024-12-20")
 
 MainTab:AddLabel("Recent Updates:")
-MainTab:AddLabel("• v" .. SCRIPT_VERSION .. ": Complete config system - saves all settings, improved auto-execute (rejoin only), fixed chromatizer rune selection")
-MainTab:AddLabel("• v1.6.2: Fixed string vs number comparison error in chromatizer")
-MainTab:AddLabel("• v1.6.1: Updated getCurrentPrisms to use script's stat display values")
-MainTab:AddLabel("• v1.6.0: New Rune tab with multi-select & integrated chromatizer")
-MainTab:AddLabel("• Renamed Main tab to Talent Tree Upgrade")
-MainTab:AddLabel("• Added Rune Teleport Speed configuration")
-MainTab:AddLabel("• Auto Chromatizer now farms selected rune when low Prisms")
-MainTab:AddLabel("• Multi-select rune system for Auto Rune")
+MainTab:AddLabel("• v" .. SCRIPT_VERSION .. ": Enhanced auto-rejoin system, improved auto-execute (global env), complete config saving, fixed chromatizer & auto upgrade speed saving")
+MainTab:AddLabel("• v1.7.0: Complete config system - saves all settings, improved auto-execute (rejoin only), fixed chromatizer rune selection")
 
 MainTab:AddLabel("Features:")
 MainTab:AddLabel("• Talent Tree Auto Upgrade (W1, W2, W1+W2)")
@@ -928,7 +932,6 @@ toggleReferences.upgradeTypeDropdown = TalentTreeTab:AddDropdown({
 })
 
 -- Auto Upgrade Speed Setting
-local autoUpgradeSpeed = 0.1 -- Default speed
 
 TalentTreeTab:AddTextbox({
     Name = "Auto Upgrade Speed (seconds)",
@@ -1079,8 +1082,6 @@ RuneTab:AddTextbox({
 
 -- Auto Chromatizer with Rune Dropdown
 RuneTab:AddLabel("Auto Chromatizer + Talent Tree")
-
-local chromatizeRuneSelection = "5M Beginner"
 
 toggleReferences.chromatizeRuneDropdown = RuneTab:AddDropdown({
     Name = "Select Rune for Chromatizer",
@@ -1435,18 +1436,16 @@ toggleReferences.autoExecuteOnRejoin = SettingsTab:AddToggle({
     Callback = function(Value)
         autoExecuteOnRejoinEnabled = Value
         if Value then
-            -- Save script URL to auto-execute on rejoin
-            local scriptUrl = "https://raw.githubusercontent.com/yourusername/yourrepo/main/script.lua" -- Replace with actual URL
-            writefile("AscenderIncrementalAutoExecute.txt", scriptUrl)
+            -- Store script source in global environment for auto-execute
+            getgenv().ASCENDER_SCRIPT_SOURCE = game:HttpGet(SCRIPT_URL)
         else
-            -- Remove auto-execute file
-            if isfile("AscenderIncrementalAutoExecute.txt") then
-                delfile("AscenderIncrementalAutoExecute.txt")
-            end
+            -- Clear global environment variables
+            getgenv().ASCENDER_AUTO_EXECUTE = nil
+            getgenv().ASCENDER_SCRIPT_SOURCE = nil
         end
         OrionLib:MakeNotification({
             Name = "Auto Execute",
-            Content = Value and "Auto execute on rejoin enabled" or "Auto execute on rejoin disabled",
+            Content = Value and "Auto execute on rejoin enabled (using global environment)" or "Auto execute on rejoin disabled",
             Image = "rbxassetid://4483345998",
             Time = 3
         })
@@ -2472,93 +2471,55 @@ if autoLoadConfigEnabled then
     end)
 end
 
--- Check for Auto Execute on Rejoin and execute script
+-- Enhanced Auto Execute on Rejoin using global environment
 task.spawn(function()
-    if isfile("AscenderIncrementalAutoExecute.txt") then
-        -- Wait to check if player was already in game (rejoin scenario)
-        task.wait(5)
+    -- Check for auto-execute flag in global environment
+    if getgenv().ASCENDER_AUTO_EXECUTE then
+        task.wait(2) -- Brief wait for game to load
         
-        local player = game:GetService("Players").LocalPlayer
-        local isRejoin = false
+        autoExecuteOnRejoinEnabled = true
         
-        -- Check if this is a rejoin by looking at player's session time
-        if player and player.AccountAge and player.AccountAge > 0 then
-            -- Additional check: if player has some game stats or was in game before
-            local success, hasGameData = pcall(function()
-                return player:FindFirstChild("leaderstats") or 
-                       player:FindFirstChild("PlayerGui") and 
-                       #player.PlayerGui:GetChildren() > 3 -- More than basic GUI elements
-            end)
-            isRejoin = success and hasGameData
-        end
+        OrionLib:MakeNotification({
+            Name = "Auto Execute",
+            Content = "Auto-execute detected! Reloading script...",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
         
-        -- Only auto-execute if this appears to be a rejoin scenario
-        if isRejoin then
-            autoExecuteOnRejoinEnabled = true
-            
-            -- Try to read and execute the saved script URL
-            local success, scriptUrl = pcall(function()
-                return readfile("AscenderIncrementalAutoExecute.txt")
-            end)
+        -- Execute the script from global environment
+        local success, executeError = pcall(function()
+            local scriptSource = getgenv().ASCENDER_SCRIPT_SOURCE
+            if scriptSource then
+                loadstring(scriptSource)()
+            else
+                -- Fallback to default script URL
+                loadstring(game:HttpGet(SCRIPT_URL))()
+            end
+        end)
         
-        if success and scriptUrl and scriptUrl ~= "" then
+        if success then
             OrionLib:MakeNotification({
                 Name = "Auto Execute",
-                Content = "Auto-execute detected! Loading script from saved URL...",
+                Content = "Script auto-executed successfully!",
                 Image = "rbxassetid://4483345998",
                 Time = 3
             })
-            
-            -- Execute the script from URL
-            task.wait(3) -- Wait for current script to fully load
-            local executeSuccess, executeError = pcall(function()
-                loadstring(game:HttpGet(scriptUrl))()
-            end)
-            
-            if executeSuccess then
-                OrionLib:MakeNotification({
-                    Name = "Auto Execute",
-                    Content = "Script auto-executed successfully!",
-                    Image = "rbxassetid://4483345998",
-                    Time = 3
-                })
-                -- Remove the auto-execute file after successful execution
-                task.wait(1)
-                if isfile("AscenderIncrementalAutoExecute.txt") then
-                    delfile("AscenderIncrementalAutoExecute.txt")
-                end
-            else
-                OrionLib:MakeNotification({
-                    Name = "Auto Execute Error",
-                    Content = "Failed to auto-execute: " .. tostring(executeError),
-                    Image = "rbxassetid://4483345998",
-                    Time = 5
-                })
-            end
+            -- Clear the auto-execute flag
+            getgenv().ASCENDER_AUTO_EXECUTE = nil
         else
             OrionLib:MakeNotification({
                 Name = "Auto Execute Error",
-                Content = "Auto-execute file found but URL is invalid",
+                Content = "Failed to auto-execute: " .. tostring(executeError),
                 Image = "rbxassetid://4483345998",
-                Time = 3
+                Time = 5
             })
-        end
-        else
-            -- Not a rejoin scenario, just clean up the auto-execute file
-            OrionLib:MakeNotification({
-                Name = "Auto Execute",
-                Content = "Auto-execute file found but this is not a rejoin scenario. File removed.",
-                Image = "rbxassetid://4483345998",
-                Time = 3
-            })
-            if isfile("AscenderIncrementalAutoExecute.txt") then
-                delfile("AscenderIncrementalAutoExecute.txt")
-            end
+            -- Clear the auto-execute flag even on error
+            getgenv().ASCENDER_AUTO_EXECUTE = nil
         end
     end
 end)
 
--- Save last used config when config changes
+-- Save last used config when config changed
 local originalSaveConfig = saveConfig
 saveConfig = function(configName)
     originalSaveConfig(configName)
@@ -2598,54 +2559,78 @@ local TeleportService = game:GetService("TeleportService")
 local GuiService = game:GetService("GuiService")
 
 -- Function to handle auto rejoin
-local function autoRejoin()
+local function autoRejoin(reason)
     local success, errorMessage = pcall(function()
-        -- Save current script URL for auto-execute
+        OrionLib:MakeNotification({
+            Name = "Disconnected",
+            Content = "Disconnected: " .. (reason or "Unknown") .. ". Attempting to rejoin...",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+        
+        -- Store script source in global environment for auto-execute
         if autoExecuteOnRejoinEnabled then
-            local scriptUrl = "https://raw.githubusercontent.com/yourusername/yourrepo/main/script.lua" -- Replace with actual URL
-            writefile("AscenderIncrementalAutoExecute.txt", scriptUrl)
+            getgenv().ASCENDER_AUTO_EXECUTE = true
+            getgenv().ASCENDER_SCRIPT_SOURCE = game:HttpGet(SCRIPT_URL)
         end
         
-        -- Attempt to rejoin the same server
-        TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
+        task.wait(2) -- Brief delay before rejoining
+        
+        -- Try to rejoin the same server first
+        local jobId = game.JobId
+        if jobId and jobId ~= "" then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, jobId, Players.LocalPlayer)
+        else
+            -- Fallback to regular teleport
+            TeleportService:Teleport(game.PlaceId, Players.LocalPlayer)
+        end
     end)
     
     if not success then
-        print("Auto rejoin failed: " .. tostring(errorMessage))
+        warn("Auto rejoin failed: " .. tostring(errorMessage))
     end
 end
 
--- Connect to player removing event (when disconnected)
-Players.PlayerRemoving:Connect(function(player)
-    if player == Players.LocalPlayer then
-        autoRejoin()
-    end
-end)
+-- Enhanced disconnect detection and auto rejoin
+local disconnectHandled = false
 
--- Connect to game close event
-game:GetService("CoreGui").ChildRemoved:Connect(function(child)
-    if child.Name == "RobloxGui" then
-        autoRejoin()
-    end
-end)
-
--- Handle network disconnection
-local function onDisconnect()
-    task.wait(1) -- Small delay to ensure disconnect is real
-    if not Players.LocalPlayer.Parent then
-        autoRejoin()
-    end
+-- Handle various disconnect scenarios
+local function handleDisconnect(reason)
+    if disconnectHandled then return end
+    disconnectHandled = true
+    autoRejoin(reason)
 end
 
--- Monitor connection status
+-- Monitor for disconnection via GuiService
+game:GetService("GuiService").ErrorMessageChanged:Connect(function()
+    local errorMessage = game:GetService("GuiService").ErrorMessage
+    if errorMessage and errorMessage ~= "" then
+        if errorMessage:find("disconnected") or errorMessage:find("lost connection") or errorMessage:find("kicked") then
+            handleDisconnect("Network Error")
+        end
+    end
+end)
+
+-- Monitor player connection status
 task.spawn(function()
-    while scriptRunning do
-        task.wait(5) -- Check every 5 seconds
-        if not Players.LocalPlayer or not Players.LocalPlayer.Parent then
-            onDisconnect()
+    while scriptRunning and Players.LocalPlayer do
+        task.wait(3)
+        
+        -- Check if player is still connected
+        local success = pcall(function()
+            return Players.LocalPlayer.Parent and Players.LocalPlayer.Character
+        end)
+        
+        if not success or not Players.LocalPlayer.Parent then
+            handleDisconnect("Connection Lost")
             break
         end
     end
+end)
+
+-- Handle server shutdown/restart
+game.Close:Connect(function()
+    handleDisconnect("Game Closed")
 end)
 
 print("Ascender Incremental GUI Script v" .. SCRIPT_VERSION .. " loaded successfully on " .. deviceType .. "!")
