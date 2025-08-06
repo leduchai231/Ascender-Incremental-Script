@@ -1,23 +1,4 @@
 
--- Ascender Incremental Script
--- Version: 1.6.1
--- Last Updated: 2024-12-19
--- Changelog:
--- v1.6.1: Updated getCurrentPrisms to use script's stat display values directly (stat is parent of all user values), improved comparison logic for display strings
--- v1.6.0: Enhanced chromatizer price parsing and comparison logic with scientific notation support
--- v1.5.6: Fixed getCurrentPrisms to use exact same method as stat tab display (getFormattedStatValue + formatNumber) for accurate comparison
--- v1.5.5: Simplified getCurrentPrisms to directly use stat display value (e.g., 1.27e512) for comparison, removed unnecessary semicolon handling
--- v1.5.4: Fixed getCurrentPrisms logic to use full numeric value (e.g., 1.10e512) instead of just exponent (512) for accurate comparison
--- v1.5.3: Cleaned up all chromatizer debug output, added clear numeric comparison logic with Vietnamese messages
--- v1.5.2: Cleaned up getCurrentPrisms debug output, keeping only Final display value for price comparison
--- v1.5.1: Cleaned up debug output in chromatizer, keeping only essential price comparison logic
--- v1.5.0: Fixed Prisms calculation to use EXACT same formatNumber formula as Stat tab for perfect synchronization
--- v1.4.0: Fixed Prism value synchronization, price format (5e178), moved Anti AFK to Settings tab
--- v1.3.0: Updated getCurrentPrisms to use getFormattedStatValue for consistent simplified values (e.g., 2.03e511)
--- v1.2.0: Fixed Prisms data extraction from player stats, added version tracking
--- v1.1.0: Added Auto Level Chromatize feature with debugging
--- v1.0.0: Initial release with auto upgrade and teleport features
-
 -- Load OrionLib with mobile fixes
 local OrionLib
 local success, result = pcall(function()
@@ -596,6 +577,8 @@ MainTab:AddLabel("Version: 1.6.0")
 MainTab:AddLabel("Last Updated: 2024-12-19")
 
 MainTab:AddLabel("Recent Updates:")
+MainTab:AddLabel("• v1.6.2: Fixed string vs number comparison error in chromatizer")
+MainTab:AddLabel("• v1.6.1: Updated getCurrentPrisms to use script's stat display values")
 MainTab:AddLabel("• v1.6.0: New Rune tab with multi-select & integrated chromatizer")
 MainTab:AddLabel("• Renamed Main tab to Talent Tree Upgrade")
 MainTab:AddLabel("• Added Rune Teleport Speed configuration")
@@ -618,7 +601,7 @@ MainTab:AddButton({
     Callback = function()
         OrionLib:MakeNotification({
             Name = "Update Check",
-            Content = "You are running the latest version v1.6.0",
+            Content = "You are running the latest version v1.6.2",
             Image = "rbxassetid://4483345998",
             Time = 3
         })
@@ -1992,22 +1975,9 @@ local function getChromatizePrice()
                                     -- Clean up scientific notation
                                     numberStr = numberStr:gsub("e%+", "e") -- Remove + from e+
                                     
-                                    -- For very large numbers, use string comparison instead of conversion
-                                    if numberStr:match("e%d%d%d+") then -- e.g., e458, e512
-                                        print("[DEBUG] Very large scientific notation detected: " .. numberStr)
-                                        -- Return the string representation for comparison
-                                        return numberStr
-                                    else
-                                        -- Try normal conversion for smaller numbers
-                                        local price = tonumber(numberStr)
-                                        if price and price > 0 and price ~= math.huge then
-                                            print("[DEBUG] Successfully parsed price: " .. tostring(price))
-                                            return price
-                                        else
-                                            print("[DEBUG] Failed to convert, returning string: " .. numberStr)
-                                            return numberStr
-                                        end
-                                    end
+                                    -- Always return string for consistent comparison with getCurrentPrisms
+                                    print("[DEBUG] Returning price as string for consistent comparison: " .. numberStr)
+                                    return numberStr
                                 else
                                     print("[DEBUG] No valid number pattern found in: '" .. tostring(cleanText) .. "'")
                                 end
@@ -2224,10 +2194,9 @@ task.spawn(function()
                     end
                 end
                 
-                -- Only proceed if we have valid, finite numbers
+                -- Only proceed if we have valid values (both should be strings now)
                 if currentPrisms and chromatizePrice and 
-                   currentPrisms ~= math.huge and chromatizePrice ~= math.huge and
-                   currentPrisms > 0 and chromatizePrice > 0 then
+                   currentPrisms ~= math.huge and chromatizePrice ~= math.huge then
                     
                     -- Compare the two values and show comparison result
                     print("[DEBUG] So sánh: " .. tostring(currentPrisms) .. " với " .. tostring(chromatizePrice))
