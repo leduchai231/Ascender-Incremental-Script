@@ -1,8 +1,9 @@
 
 -- Ascender Incremental Script
--- Version: 1.4.0
+-- Version: 1.5.0
 -- Last Updated: 2024-12-19
 -- Changelog:
+-- v1.5.0: Fixed Prisms calculation to use EXACT same formatNumber formula as Stat tab for perfect synchronization
 -- v1.4.0: Fixed Prism value synchronization, price format (5e178), moved Anti AFK to Settings tab
 -- v1.3.0: Updated getCurrentPrisms to use getFormattedStatValue for consistent simplified values (e.g., 2.03e511)
 -- v1.2.0: Fixed Prisms data extraction from player stats, added version tracking
@@ -36,12 +37,12 @@ end
 
 -- Create main Window with mobile optimizations
 local Window = OrionLib:MakeWindow({
-    Name = "Ascender Incremental Hub v1.4.0",
+    Name = "Ascender Incremental Hub v1.5.0",
     HidePremium = false,
     SaveConfig = true,
     ConfigFolder = "AscenderIncrementalConfig",
     IntroEnabled = true,
-    IntroText = "Ascender Incremental Script v1.4.0",
+    IntroText = "Ascender Incremental Script v1.5.0",
     Icon = "rbxassetid://4483345998"
 })
 
@@ -1850,7 +1851,7 @@ local function clickChromatizeButton()
     end
 end
 
--- Function to get current Prisms using same method as stats display
+-- Function to get current Prisms using EXACT same method as stats display
 local function getCurrentPrisms()
     local success, result = pcall(function()
         local player = game:GetService("Players").LocalPlayer
@@ -1861,34 +1862,33 @@ local function getCurrentPrisms()
             local value = tostring(stat.Value)
             print("[DEBUG] getCurrentPrisms - Raw stat value: " .. value)
             
-            -- Check if value contains semicolon (format: "rawValue;formattedValue")
-            if string.find(value, ";") then
-                local parts = string.split(value, ";")
-                if #parts >= 2 then
-                    local formattedValue = parts[2]  -- Get the formatted part (e.g., "2.03e511")
-                    print("[DEBUG] getCurrentPrisms - Found formatted value: " .. formattedValue)
-                    
-                    -- Convert formatted value to number for comparison
-                    local numValue = tonumber(formattedValue)
-                    if numValue then
-                        print("[DEBUG] getCurrentPrisms - Converted to number: " .. tostring(numValue))
-                        return numValue
-                    else
-                        print("[DEBUG] getCurrentPrisms - Could not convert formatted value to number")
-                    end
-                end
-            end
+            -- Use getFormattedStatValue to get the same value as displayed in Stat tab
+            local formattedValue = getFormattedStatValue("Prisms")
+            print("[DEBUG] getCurrentPrisms - Formatted value from getFormattedStatValue: " .. tostring(formattedValue))
             
-            -- If no semicolon or conversion failed, use raw value
-            local rawValue = stat.Value
-            if type(rawValue) == "number" then
-                print("[DEBUG] getCurrentPrisms - Using raw number: " .. tostring(rawValue))
-                return rawValue
+            -- Apply the EXACT same formatNumber formula as used in Stat tab
+            local finalDisplayValue = formatNumber(formattedValue)
+            print("[DEBUG] getCurrentPrisms - Final display value (same as Stat tab): " .. tostring(finalDisplayValue))
+            
+            -- For comparison, we need the numeric value that formatNumber would process
+            -- This is the same value that gets passed to formatNumber in updateStatLabels
+            local numericValue = tonumber(formattedValue)
+            if numericValue then
+                print("[DEBUG] getCurrentPrisms - Numeric value for comparison: " .. tostring(numericValue))
+                return numericValue
             else
-                local numValue = tonumber(rawValue)
-                if numValue then
-                    print("[DEBUG] getCurrentPrisms - Converted raw to number: " .. tostring(numValue))
-                    return numValue
+                print("[DEBUG] getCurrentPrisms - Could not convert formatted value to number")
+                -- Fallback to raw value
+                local rawValue = stat.Value
+                if type(rawValue) == "number" then
+                    print("[DEBUG] getCurrentPrisms - Using raw number as fallback: " .. tostring(rawValue))
+                    return rawValue
+                else
+                    local numValue = tonumber(rawValue)
+                    if numValue then
+                        print("[DEBUG] getCurrentPrisms - Converted raw to number as fallback: " .. tostring(numValue))
+                        return numValue
+                    end
                 end
             end
         end
@@ -1909,11 +1909,16 @@ task.spawn(function()
         if autoLevelChromatizeEnabled then
             print("[DEBUG] Auto Level Chromatize is enabled, checking...")
             local success, err = pcall(function()
-                -- Get current Prisms from stats using same method as stat display
+                -- Get current Prisms from stats using EXACT same method as stat display
                 local currentPrisms = getCurrentPrisms()
                 local chromatizePrice = getChromatizePrice()
                 
-                print("[DEBUG] Current Prisms from getCurrentPrisms(): " .. tostring(currentPrisms))
+                -- Also get the formatted display value to show what user sees in Stat tab
+                local formattedPrismsForDisplay = getFormattedStatValue("Prisms")
+                local finalDisplayValue = formatNumber(formattedPrismsForDisplay)
+                
+                print("[DEBUG] Current Prisms (numeric for comparison): " .. tostring(currentPrisms))
+                print("[DEBUG] Current Prisms (display format like Stat tab): " .. tostring(finalDisplayValue))
                 print("[DEBUG] Chromatize Price: " .. tostring(chromatizePrice))
                 
                 if currentPrisms and chromatizePrice then
@@ -2007,4 +2012,4 @@ if game:GetService("UserInputService").TouchEnabled then
     })
 end
 
-print("Ascender Incremental GUI Script v1.4.0 loaded successfully on " .. deviceType .. "!")
+print("Ascender Incremental GUI Script v1.5.0 loaded successfully on " .. deviceType .. "!")
