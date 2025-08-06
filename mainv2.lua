@@ -1,6 +1,6 @@
 
 -- Script Version Configuration
-local SCRIPT_VERSION = "1.8.0"
+local SCRIPT_VERSION = "1.8.1"
 local SCRIPT_URL = "https://raw.githubusercontent.com/leduchai231/Ascender-Incremental-Script/refs/heads/main/mainv2.lua"
 
 -- Auto-execute system removed per user request
