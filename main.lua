@@ -1,6 +1,6 @@
 
 -- Script Version Configuration
-local SCRIPT_VERSION = "1.8.0"
+local SCRIPT_VERSION = "1.8.1"
 -- Auto-execute system removed per user request
 
 -- Load OrionLib with mobile fixes
