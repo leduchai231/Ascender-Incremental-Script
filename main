@@ -1510,15 +1510,30 @@ local IceLabel = StatTab:AddLabel("Ice: Loading...")
 local ChromiumLabel = StatTab:AddLabel("Chromium: Loading...")
 local IciclesLabel = StatTab:AddLabel("Icicles: Loading...")
 
--- Function to format large numbers
+-- Function to format large numbers with scientific notation conversion
 local function formatNumber(num)
     if not num then return "0" end
     
     local numValue = tonumber(num)
     if not numValue then return tostring(num) end
     
-    -- Return the original number without abbreviations, preserving decimals
-    return tostring(numValue)
+    -- Apply the formula: 10^Z × e × Y'
+    -- Y is the original number
+    -- Y' is the integer part
+    -- Z is Y - Y' (decimal part)
+    local Y = numValue
+    local Y_prime = math.floor(Y)
+    local Z = Y - Y_prime
+    
+    -- Calculate 10^Z × e × Y'
+    local result = (10 ^ Z) * math.exp(1) * Y_prime
+    
+    -- Format in scientific notation
+    if result >= 1e6 then
+        return string.format("%.2e", result)
+    else
+        return string.format("%.2f", result)
+    end
 end
 
 -- Function to safely get stat value
