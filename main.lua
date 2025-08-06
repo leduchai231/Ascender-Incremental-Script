@@ -222,7 +222,7 @@ local configFolderName = "AscenderIncrementalConfigs"
 local defaultConfigName = "default"
 local currentConfigName = defaultConfigName
 local defaultConfig = {
-    antiAfkEnabled = false,
+    antiAfkEnabled = true,
     autoUpgradeEnabled = false,
     selectedUpgradeType = "W1",
     autoAllRuneEnabled = false,
@@ -573,10 +573,11 @@ end
 -- TAB MAIN (Script Updates)
 MainTab:AddLabel("Script Information")
 
-MainTab:AddLabel("Version: 1.6.0")
+MainTab:AddLabel("Version: 1.7.0")
 MainTab:AddLabel("Last Updated: 2024-12-19")
 
 MainTab:AddLabel("Recent Updates:")
+MainTab:AddLabel("• v1.7.0: Removed all debug messages, Anti AFK enabled by default")
 MainTab:AddLabel("• v1.6.2: Fixed string vs number comparison error in chromatizer")
 MainTab:AddLabel("• v1.6.1: Updated getCurrentPrisms to use script's stat display values")
 MainTab:AddLabel("• v1.6.0: New Rune tab with multi-select & integrated chromatizer")
@@ -601,7 +602,7 @@ MainTab:AddButton({
     Callback = function()
         OrionLib:MakeNotification({
             Name = "Update Check",
-            Content = "You are running the latest version v1.6.2",
+            Content = "You are running the latest version v1.7.0",
             Image = "rbxassetid://4483345998",
             Time = 3
         })
@@ -1059,9 +1060,7 @@ RuneTab:AddButton({
             Time = 5
         })
         
-        print("[DEBUG] === MANUAL PRICE CHECK ===")
-        print("[DEBUG] Current Prisms: " .. prismText)
-        print("[DEBUG] Chromatizer Price: " .. priceText)
+
         
         if currentPrisms and chromatizePrice then
             local canAfford = false
@@ -1072,10 +1071,10 @@ RuneTab:AddButton({
                 local priceNum = chromatizePrice:match("([%d%.e%-+]+)")
                 
                 if currentNum and priceNum then
-                    print("[DEBUG] Extracted numbers: " .. currentNum .. " vs " .. priceNum)
+
                     canAfford = compareScientificNotation(currentNum, priceNum)
                 else
-                    print("[DEBUG] Failed to extract numbers from strings")
+
                     canAfford = false
                 end
             else
@@ -1086,13 +1085,13 @@ RuneTab:AddButton({
                 if currentAsNum and priceAsNum then
                     canAfford = currentAsNum >= priceAsNum
                 else
-                    print("[DEBUG] Cannot compare mixed types: " .. type(currentPrisms) .. " vs " .. type(chromatizePrice))
+
                     canAfford = false
                 end
             end
-            print("[DEBUG] Can afford upgrade: " .. tostring(canAfford))
+
         end
-        print("[DEBUG] === END MANUAL CHECK ===")
+
     end
 })
 
@@ -1351,7 +1350,7 @@ SettingsTab:AddLabel("General Settings")
 
 SettingsTab:AddToggle({
     Name = "Anti AFK",
-    Default = false,
+    Default = true,
     Callback = function(Value)
         antiAfkEnabled = Value
         OrionLib:MakeNotification({
@@ -1954,58 +1953,58 @@ local function getChromatizePrice()
                             local priceLabel = billboardGui:FindFirstChild("Price")
                             if priceLabel and priceLabel.Text then
                                 local text = priceLabel.Text
-                                print("[DEBUG] Raw price text: '" .. tostring(text) .. "'")
+
                                 
                                 -- Handle different text formats
                                 if text == "" or text == nil then
-                                    print("[DEBUG] Price text is empty")
+
                                     return nil
                                 end
                                 
                                 -- Clean text first - remove PRISMS/Prisms and extra spaces
                                 local cleanText = text:gsub("%s*PRISMS%s*", ""):gsub("%s*Prisms%s*", ""):gsub("%s*Price:%s*", ""):gsub("%s*Cost:%s*", "")
                                 cleanText = cleanText:gsub("%s+", "") -- Remove all spaces
-                                print("[DEBUG] Cleaned text: '" .. tostring(cleanText) .. "'")
+
                                 
                                 -- Try to extract just the number part
                                 local numberStr = cleanText:match("([%d%.e%-+]+)")
                                 if numberStr then
-                                    print("[DEBUG] Extracted number string: '" .. tostring(numberStr) .. "'")
+
                                     
                                     -- Clean up scientific notation
                                     numberStr = numberStr:gsub("e%+", "e") -- Remove + from e+
                                     
                                     -- Always return string for consistent comparison with getCurrentPrisms
-                                    print("[DEBUG] Returning price as string for consistent comparison: " .. numberStr)
+
                                     return numberStr
                                 else
-                                    print("[DEBUG] No valid number pattern found in: '" .. tostring(cleanText) .. "'")
+
                                 end
                                 
-                                print("[DEBUG] No valid price pattern found in text: '" .. text .. "'")
+
                                 return nil
                             else
-                                print("[DEBUG] Price label not found or no text")
+
                                 return nil
                             end
                         else
-                            print("[DEBUG] BillboardGui not found")
+
                             return nil
                         end
                     else
-                        print("[DEBUG] Button not found")
+
                         return nil
                     end
                 else
-                    print("[DEBUG] Chromatize not found")
+
                     return nil
                 end
             else
-                print("[DEBUG] Chromatizer not found")
+
                 return nil
             end
         else
-            print("[DEBUG] Layers not found")
+
             return nil
         end
     end)
@@ -2013,7 +2012,7 @@ local function getChromatizePrice()
     if success then
         return result
     else
-        print("[DEBUG] Error in getChromatizePrice: " .. tostring(result))
+
         return nil
     end
 end
@@ -2080,7 +2079,7 @@ local function compareScientificNotation(str1, str2)
     local m2, e2 = str2:match("([%d%.]+)e([%-+]?%d+)")
     
     if not m1 or not e1 or not m2 or not e2 then
-        print("[DEBUG] Failed to parse scientific notation: " .. str1 .. " vs " .. str2)
+
         return false
     end
     
@@ -2090,11 +2089,11 @@ local function compareScientificNotation(str1, str2)
     local exponent2 = tonumber(e2)
     
     if not mantissa1 or not exponent1 or not mantissa2 or not exponent2 then
-        print("[DEBUG] Failed to convert to numbers")
+
         return false
     end
     
-    print("[DEBUG] Comparing: " .. mantissa1 .. "e" .. exponent1 .. " vs " .. mantissa2 .. "e" .. exponent2)
+
     
     -- Compare exponents first
     if exponent1 > exponent2 then
@@ -2114,12 +2113,12 @@ local function getCurrentPrisms()
         local formattedValue = getFormattedStatValue("Prisms")
         if formattedValue then
             local displayValue = formatNumber(formattedValue)
-            print("[DEBUG] getCurrentPrisms - Stat tab display value: " .. tostring(displayValue))
+
             
             -- Return the display value directly (same as what user sees in stat tab)
             return displayValue
         else
-            print("[DEBUG] Failed to get formatted Prisms value")
+
             return nil
         end
     end)
@@ -2127,7 +2126,7 @@ local function getCurrentPrisms()
     if success and result then
         return result
     else
-        print("[DEBUG] Error in getCurrentPrisms: " .. tostring(result))
+
         return nil
     end
 end
@@ -2188,9 +2187,9 @@ task.spawn(function()
                     retryCount = retryCount + 1
                     
                     if currentPrisms == math.huge or chromatizePrice == math.huge then
-                        print("[DEBUG] Detected inf value, retrying... (" .. retryCount .. "/" .. maxRetries .. ")")
+
                     elseif not currentPrisms or not chromatizePrice then
-                        print("[DEBUG] Price not loaded yet, retrying... (" .. retryCount .. "/" .. maxRetries .. ")")
+
                     end
                 end
                 
@@ -2199,7 +2198,7 @@ task.spawn(function()
                    currentPrisms ~= math.huge and chromatizePrice ~= math.huge then
                     
                     -- Compare the two values and show comparison result
-                    print("[DEBUG] So sánh: " .. tostring(currentPrisms) .. " với " .. tostring(chromatizePrice))
+
                     
                     local canAfford = false
                     -- Both values are now display strings from stat tab, compare them directly
@@ -2209,10 +2208,10 @@ task.spawn(function()
                         local priceNum = chromatizePrice:match("([%d%.e%-+]+)")
                         
                         if currentNum and priceNum then
-                            print("[DEBUG] Extracted numbers: " .. currentNum .. " vs " .. priceNum)
+
                             canAfford = compareScientificNotation(currentNum, priceNum)
                         else
-                            print("[DEBUG] Failed to extract numbers from strings")
+
                             canAfford = false
                         end
                     else
@@ -2223,14 +2222,14 @@ task.spawn(function()
                         if currentAsNum and priceAsNum then
                             canAfford = currentAsNum >= priceAsNum
                         else
-                            print("[DEBUG] Cannot compare mixed types: " .. type(currentPrisms) .. " vs " .. type(chromatizePrice))
+
                             canAfford = false
                         end
                     end
                     
-                    print("[DEBUG] Can afford: " .. tostring(canAfford))
+
                     if canAfford then
-                        print("[DEBUG] " .. tostring(currentPrisms) .. " lớn hơn hoặc bằng " .. tostring(chromatizePrice) .. " => đủ tiền nâng cấp")
+
                         
                         -- We have enough Prisms, teleport to chromatize button and upgrade
                         if teleportToChromatize() then
@@ -2245,7 +2244,7 @@ task.spawn(function()
                             end
                         end
                     else
-                        print("[DEBUG] " .. tostring(currentPrisms) .. " nhỏ hơn " .. tostring(chromatizePrice) .. " => không đủ tiền nâng cấp")
+
                         
                         -- Not enough Prisms, farm the selected rune
                         local currentTime = tick()
@@ -2262,7 +2261,7 @@ task.spawn(function()
                         end
                     end
                 else
-                    print("[DEBUG] Không thể lấy giá hợp lệ sau " .. maxRetries .. " lần thử. Đợi thêm...")
+
                 end
             end)
             
