@@ -26,12 +26,12 @@ end
 
 -- Create main Window with mobile optimizations
 local Window = OrionLib:MakeWindow({
-    Name = "Ascender Incremental Hub v1.5.6",
+    Name = "Ascender Incremental Hub v1.7.0",
     HidePremium = false,
     SaveConfig = true,
     ConfigFolder = "AscenderIncrementalConfig",
     IntroEnabled = true,
-    IntroText = "Ascender Incremental Script v1.5.6",
+    IntroText = "Ascender Incremental Script v1.7.0",
     Icon = "rbxassetid://4483345998"
 })
 
@@ -2320,4 +2320,4 @@ if game:GetService("UserInputService").TouchEnabled then
     })
 end
 
-print("Ascender Incremental GUI Script v1.5.7 loaded successfully on " .. deviceType .. "!")
+print("Ascender Incremental GUI Script v1.7.0 loaded successfully on " .. deviceType .. "!")
