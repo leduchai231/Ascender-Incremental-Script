@@ -1058,6 +1058,34 @@ RuneTab:AddToggle({
     end
 })
 
+RuneTab:AddButton({
+    Name = "Check Chromatizer Price",
+    Callback = function()
+        local currentPrisms = getCurrentPrisms()
+        local chromatizePrice = getChromatizePrice()
+        
+        local prismText = currentPrisms and tostring(currentPrisms) or "Failed to get"
+        local priceText = chromatizePrice and tostring(chromatizePrice) or "Failed to get"
+        
+        OrionLib:MakeNotification({
+            Name = "Chromatizer Debug",
+            Content = "Current Prisms: " .. prismText .. "\nChromatizer Price: " .. priceText,
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
+        
+        print("[DEBUG] === MANUAL PRICE CHECK ===")
+        print("[DEBUG] Current Prisms: " .. prismText)
+        print("[DEBUG] Chromatizer Price: " .. priceText)
+        
+        if currentPrisms and chromatizePrice then
+            local canAfford = currentPrisms >= chromatizePrice
+            print("[DEBUG] Can afford upgrade: " .. tostring(canAfford))
+        end
+        print("[DEBUG] === END MANUAL CHECK ===")
+    end
+})
+
 -- StatTab moved to after MainTab
 
 -- TAB TELEPORT
@@ -1916,27 +1944,87 @@ local function getChromatizePrice()
                             local priceLabel = billboardGui:FindFirstChild("Price")
                             if priceLabel and priceLabel.Text then
                                 local text = priceLabel.Text
-                                print("[DEBUG] Price text found: " .. tostring(text))
-                                -- Extract number from text like "5e178 PRISMS"
-                                local numberStr = text:match("([%d%.e%-+]+)%s*PRISMS")
-                                if numberStr then
-                                    -- Remove + sign from scientific notation (e.g., "5e+178" -> "5e178")
-                                    numberStr = numberStr:gsub("e%+", "e")
-                                    local price = tonumber(numberStr)
-                                    return price
+                                print("[DEBUG] Raw price text: '" .. tostring(text) .. "'")
+                                
+                                -- Handle different text formats
+                                if text == "" or text == nil then
+                                    print("[DEBUG] Price text is empty")
+                                    return nil
                                 end
+                                
+                                -- Try multiple patterns to extract price
+                                local patterns = {
+                                    "([%d%.e%-+]+)%s*PRISMS",  -- "5e178 PRISMS"
+                                    "([%d%.e%-+]+)%s*Prisms",  -- "5e178 Prisms"
+                                    "([%d%.e%-+]+)",           -- Just the number
+                                    "Price:%s*([%d%.e%-+]+)",  -- "Price: 5e178"
+                                    "Cost:%s*([%d%.e%-+]+)"    -- "Cost: 5e178"
+                                }
+                                
+                                for _, pattern in ipairs(patterns) do
+                                    local numberStr = text:match(pattern)
+                                    if numberStr then
+                                        print("[DEBUG] Extracted number string: '" .. tostring(numberStr) .. "'")
+                                        -- Clean up the number string
+                                        numberStr = numberStr:gsub("e%+", "e") -- Remove + from scientific notation
+                                        numberStr = numberStr:gsub("%s+", "")   -- Remove spaces
+                                        
+                                        -- Handle scientific notation manually if tonumber fails
+                                        local price = tonumber(numberStr)
+                                        if not price then
+                                            -- Try to parse scientific notation manually
+                                            local mantissa, exponent = numberStr:match("([%d%.]+)e([%-+]?%d+)")
+                                            if mantissa and exponent then
+                                                local m = tonumber(mantissa)
+                                                local e = tonumber(exponent)
+                                                if m and e then
+                                                    price = m * (10 ^ e)
+                                                    print("[DEBUG] Manually parsed scientific notation: " .. mantissa .. "e" .. exponent .. " = " .. tostring(price))
+                                                end
+                                            end
+                                        end
+                                        
+                                        if price and price > 0 and price ~= math.huge then
+                                            print("[DEBUG] Successfully parsed price: " .. tostring(price))
+                                            return price
+                                        else
+                                            print("[DEBUG] Failed to convert to valid number: " .. tostring(numberStr) .. " -> " .. tostring(price))
+                                        end
+                                    end
+                                end
+                                
+                                print("[DEBUG] No valid price pattern found in text: '" .. text .. "'")
+                                return nil
+                            else
+                                print("[DEBUG] Price label not found or no text")
+                                return nil
                             end
+                        else
+                            print("[DEBUG] BillboardGui not found")
+                            return nil
                         end
+                    else
+                        print("[DEBUG] Button not found")
+                        return nil
                     end
+                else
+                    print("[DEBUG] Chromatize not found")
+                    return nil
                 end
+            else
+                print("[DEBUG] Chromatizer not found")
+                return nil
             end
+        else
+            print("[DEBUG] Layers not found")
+            return nil
         end
-        return nil
     end)
     
     if success then
         return result
     else
+        print("[DEBUG] Error in getChromatizePrice: " .. tostring(result))
         return nil
     end
 end
@@ -2004,22 +2092,26 @@ local function getCurrentPrisms()
         
         local stat = player.Stats:FindFirstChild("Prisms")
         if stat and stat.Value then
-            -- Use EXACT same method as stat tab: getFormattedStatValue + formatNumber
-            local formattedValue = getFormattedStatValue("Prisms")
-            local displayValue = formatNumber(formattedValue)
-            print("[DEBUG] getCurrentPrisms - Stat tab display value: " .. tostring(displayValue))
+            -- Get raw stat value directly
+            local rawValue = stat.Value
+            print("[DEBUG] getCurrentPrisms - Raw stat value: " .. tostring(rawValue))
             
-            -- Extract numeric value from display format (e.g., "1.60e512" -> 1.60e512)
-            local numericStr = displayValue:match("([%d%.e%-]+)")
-            if numericStr then
-                local numericValue = tonumber(numericStr)
-                if numericValue then
-                    print("[DEBUG] Using numeric value for comparison: " .. tostring(numericValue))
-                    return numericValue
+            -- Check if raw value is valid
+            if rawValue and rawValue > 0 and rawValue ~= math.huge then
+                print("[DEBUG] Using raw numeric value for comparison: " .. tostring(rawValue))
+                return rawValue
+            else
+                print("[DEBUG] Raw value is invalid: " .. tostring(rawValue))
+                
+                -- Fallback: try formatted value
+                local formattedValue = getFormattedStatValue("Prisms")
+                if formattedValue and formattedValue > 0 and formattedValue ~= math.huge then
+                    print("[DEBUG] Using formatted value: " .. tostring(formattedValue))
+                    return formattedValue
                 end
             end
             
-            print("[DEBUG] Failed to extract numeric value from: " .. tostring(displayValue))
+            print("[DEBUG] All methods failed to get valid Prisms value")
             return nil
         end
         return nil
@@ -2028,6 +2120,7 @@ local function getCurrentPrisms()
     if success and result then
         return result
     else
+        print("[DEBUG] Error in getCurrentPrisms: " .. tostring(result))
         return nil
     end
 end
