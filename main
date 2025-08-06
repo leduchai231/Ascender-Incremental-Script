@@ -159,11 +159,7 @@ local SettingsTab = Window:MakeTab({
     PremiumOnly = false
 })
 
-local StatTab = Window:MakeTab({
-    Name = "Stat",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
+
 
 -- Services and Events
 local Players = game:GetService("Players")
@@ -201,6 +197,7 @@ local scriptRunning = true
 local antiAfkEnabled = true
 local autoAllRuneEnabled = false
 local autoAllRuneSpeed = 2
+local autoLevelChromatizeEnabled = false
 
 -- Config system
 local configFolderName = "AscenderIncrementalConfigs"
@@ -211,7 +208,8 @@ local defaultConfig = {
     autoUpgradeEnabled = false,
     selectedUpgradeType = "W1",
     autoAllRuneEnabled = false,
-    autoAllRuneSpeed = 2
+    autoAllRuneSpeed = 2,
+    autoLevelChromatizeEnabled = false
 }
 
 local function getConfigPath(configName)
@@ -299,7 +297,8 @@ local function saveConfig(configName)
         autoUpgradeEnabled = autoUpgradeEnabled,
         selectedUpgradeType = selectedUpgradeType,
         autoAllRuneEnabled = autoAllRuneEnabled,
-        autoAllRuneSpeed = autoAllRuneSpeed
+        autoAllRuneSpeed = autoAllRuneSpeed,
+        autoLevelChromatizeEnabled = autoLevelChromatizeEnabled
     }
     
     local success, err = pcall(function()
@@ -355,6 +354,7 @@ local function loadConfig(configName)
         selectedUpgradeType = result.selectedUpgradeType or defaultConfig.selectedUpgradeType
         autoAllRuneEnabled = result.autoAllRuneEnabled or defaultConfig.autoAllRuneEnabled
         autoAllRuneSpeed = result.autoAllRuneSpeed or defaultConfig.autoAllRuneSpeed
+        autoLevelChromatizeEnabled = result.autoLevelChromatizeEnabled or defaultConfig.autoLevelChromatizeEnabled
         
         currentConfigName = configName
         
@@ -376,6 +376,7 @@ local function loadConfig(configName)
         selectedUpgradeType = defaultConfig.selectedUpgradeType
         autoAllRuneEnabled = defaultConfig.autoAllRuneEnabled
         autoAllRuneSpeed = defaultConfig.autoAllRuneSpeed
+        autoLevelChromatizeEnabled = defaultConfig.autoLevelChromatizeEnabled
         
         OrionLib:MakeNotification({
             Name = "Config Error",
@@ -768,13 +769,14 @@ ConfigTab:AddButton({
     Name = "Show Current Settings",
     Callback = function()
         local configInfo = string.format(
-            "Config: %s\nAnti AFK: %s\nAuto Upgrade: %s\nUpgrade Type: %s\nAuto All Rune: %s\nRune Speed: %.2fs",
+            "Config: %s\nAnti AFK: %s\nAuto Upgrade: %s\nUpgrade Type: %s\nAuto All Rune: %s\nRune Speed: %.2fs\nAuto Chromatize: %s",
             currentConfigName,
             antiAfkEnabled and "ON" or "OFF",
             autoUpgradeEnabled and "ON" or "OFF",
             selectedUpgradeType,
             autoAllRuneEnabled and "ON" or "OFF",
-            autoAllRuneSpeed
+            autoAllRuneSpeed,
+            autoLevelChromatizeEnabled and "ON" or "OFF"
         )
         
         OrionLib:MakeNotification({
@@ -840,7 +842,7 @@ MainTab:AddTextbox({
             autoAllRuneSpeed = numValue
             OrionLib:MakeNotification({
                 Name = "Speed Setting",
-                Content = "Rune speed set to " .. string.format("%.2f", numValue) .. " seconds",
+                Content = "Rune speed set to " .. numValue .. " seconds",
                 Image = "rbxassetid://4483345998",
                 Time = 2
             })
@@ -853,6 +855,27 @@ MainTab:AddTextbox({
             })
         end
     end
+})
+
+MainTab:AddToggle({
+    Name = "Auto Level Chromatize",
+    Default = false,
+    Callback = function(Value)
+        autoLevelChromatizeEnabled = Value
+        OrionLib:MakeNotification({
+            Name = "Auto Level Chromatize",
+            Content = Value and "Auto Level Chromatize enabled" or "Auto Level Chromatize disabled",
+            Image = "rbxassetid://4483345998",
+            Time = 3
+        })
+    end
+})
+
+-- Create Stat Tab after Main Tab
+local StatTab = Window:MakeTab({
+    Name = "Stat",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
 })
 
 -- Auto Rune (Single Rune Selection)
@@ -1517,23 +1540,29 @@ local function formatNumber(num)
     local numValue = tonumber(num)
     if not numValue then return tostring(num) end
     
-    -- Apply the formula: 10^Z × e × Y'
-    -- Y is the original number
-    -- Y' is the integer part
-    -- Z is Y - Y' (decimal part)
+    -- Apply the correct formula to get scientific notation
+    -- Y is the original number (e.g., 78.87090351708635)
+    -- Y' is the integer part (e.g., 78)
+    -- Z is the decimal part Y - Y' (e.g., 0.87090351708635)
+    -- Result: 10^Z e Y' (e.g., 7.43e78)
     local Y = numValue
     local Y_prime = math.floor(Y)
     local Z = Y - Y_prime
     
-    -- Calculate 10^Z × e × Y'
-    local result = (10 ^ Z) * math.exp(1) * Y_prime
+    -- Calculate coefficient: 10^Z
+    local coefficient = 10 ^ Z
     
-    -- Format in scientific notation
-    if result >= 1e6 then
-        return string.format("%.2e", result)
+    -- Format exponent with K for thousands (e.g., 75102 becomes 75.1K)
+    local exponentStr
+    if Y_prime >= 1000 then
+        local thousands = Y_prime / 1000
+        exponentStr = string.format("%.1fK", thousands)
     else
-        return string.format("%.2f", result)
+        exponentStr = tostring(Y_prime)
     end
+    
+    -- Format as scientific notation: coefficient e exponent
+    return string.format("%.2fe%s", coefficient, exponentStr)
 end
 
 -- Function to safely get stat value
@@ -1583,49 +1612,39 @@ local function updateStatLabels()
         local chromium = getStatValue("Chromium")
         local icicles = getStatValue("Icicles")
         
-        -- Update labels with formatted values
-        if EnergyLabel and EnergyLabel.Set then
-            EnergyLabel:Set("Energy: " .. formatNumber(energy))
+        -- Update labels with formatted values using safer method
+        local function safeUpdateLabel(label, text)
+            if label and type(label) == "table" then
+                if label.Set and type(label.Set) == "function" then
+                    local updateSuccess, updateErr = pcall(function()
+                        label:Set(text)
+                    end)
+                    if not updateSuccess then
+                        -- Try alternative method if Set fails
+                        if label.Text then
+                            label.Text = text
+                        elseif label.Content then
+                            label.Content = text
+                        end
+                    end
+                end
+            end
         end
-        if FlameLabel and FlameLabel.Set then
-            FlameLabel:Set("Flame: " .. formatNumber(flame))
-        end
-        if PowerLabel and PowerLabel.Set then
-            PowerLabel:Set("Power: " .. formatNumber(power))
-        end
-        if RealmPointsLabel and RealmPointsLabel.Set then
-            RealmPointsLabel:Set("Realm Points: " .. formatNumber(realmPoints))
-        end
-        if FleshLabel and FleshLabel.Set then
-            FleshLabel:Set("Flesh: " .. formatNumber(flesh))
-        end
-        if PrismsLabel and PrismsLabel.Set then
-            PrismsLabel:Set("Prisms: " .. formatNumber(prisms))
-        end
-        if OrbsLabel and OrbsLabel.Set then
-            OrbsLabel:Set("Orbs: " .. formatNumber(orbs))
-        end
-        if SpheresLabel and SpheresLabel.Set then
-            SpheresLabel:Set("Spheres: " .. formatNumber(spheres))
-        end
-        if DropletsLabel and DropletsLabel.Set then
-            DropletsLabel:Set("Droplets: " .. formatNumber(droplets))
-        end
-        if WaterLabel and WaterLabel.Set then
-            WaterLabel:Set("Water: " .. formatNumber(water))
-        end
-        if ArcticPointsLabel and ArcticPointsLabel.Set then
-            ArcticPointsLabel:Set("Arctic Points: " .. formatNumber(arcticPoints))
-        end
-        if IceLabel and IceLabel.Set then
-            IceLabel:Set("Ice: " .. formatNumber(ice))
-        end
-        if ChromiumLabel and ChromiumLabel.Set then
-            ChromiumLabel:Set("Chromium: " .. formatNumber(chromium))
-        end
-        if IciclesLabel and IciclesLabel.Set then
-            IciclesLabel:Set("Icicles: " .. formatNumber(icicles))
-        end
+        
+        safeUpdateLabel(EnergyLabel, "Energy: " .. formatNumber(energy))
+        safeUpdateLabel(FlameLabel, "Flame: " .. formatNumber(flame))
+        safeUpdateLabel(PowerLabel, "Power: " .. formatNumber(power))
+        safeUpdateLabel(RealmPointsLabel, "Realm Points: " .. formatNumber(realmPoints))
+        safeUpdateLabel(FleshLabel, "Flesh: " .. formatNumber(flesh))
+        safeUpdateLabel(PrismsLabel, "Prisms: " .. formatNumber(prisms))
+        safeUpdateLabel(OrbsLabel, "Orbs: " .. formatNumber(orbs))
+        safeUpdateLabel(SpheresLabel, "Spheres: " .. formatNumber(spheres))
+        safeUpdateLabel(DropletsLabel, "Droplets: " .. formatNumber(droplets))
+        safeUpdateLabel(WaterLabel, "Water: " .. formatNumber(water))
+        safeUpdateLabel(ArcticPointsLabel, "Arctic Points: " .. formatNumber(arcticPoints))
+        safeUpdateLabel(IceLabel, "Ice: " .. formatNumber(ice))
+        safeUpdateLabel(ChromiumLabel, "Chromium: " .. formatNumber(chromium))
+        safeUpdateLabel(IciclesLabel, "Icicles: " .. formatNumber(icicles))
     end)
     
     if not success then
@@ -1647,11 +1666,144 @@ StatTab:AddButton({
     end
 })
 
--- Auto-update stats every 5 seconds
+-- Function to get Chromatize price from workspace
+local function getChromatizePrice()
+    local success, result = pcall(function()
+        local chromatizeButton = workspace:FindFirstChild("Layers")
+        if chromatizeButton then
+            chromatizeButton = chromatizeButton:FindFirstChild("Chromatizer")
+            if chromatizeButton then
+                chromatizeButton = chromatizeButton:FindFirstChild("Chromatize")
+                if chromatizeButton then
+                    chromatizeButton = chromatizeButton:FindFirstChild("Button")
+                    if chromatizeButton then
+                        local billboardGui = chromatizeButton:FindFirstChild("BillboardGui")
+                        if billboardGui then
+                            local priceLabel = billboardGui:FindFirstChild("Price")
+                            if priceLabel and priceLabel.Text then
+                                local text = priceLabel.Text
+                                -- Extract number from text like "5e178 PRISMS"
+                                local numberStr = text:match("([%d%.e%-+]+)%s*PRISMS")
+                                if numberStr then
+                                    return tonumber(numberStr)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return nil
+    end)
+    
+    if success then
+        return result
+    else
+        return nil
+    end
+end
+
+-- Function to teleport to Chromatize button
+local function teleportToChromatize()
+    local success, err = pcall(function()
+        local chromatizeButton = workspace:FindFirstChild("Layers")
+        if chromatizeButton then
+            chromatizeButton = chromatizeButton:FindFirstChild("Chromatizer")
+            if chromatizeButton then
+                chromatizeButton = chromatizeButton:FindFirstChild("Chromatize")
+                if chromatizeButton then
+                    chromatizeButton = chromatizeButton:FindFirstChild("Button")
+                    if chromatizeButton and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local buttonPosition = chromatizeButton.Position
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(buttonPosition + Vector3.new(0, 5, 0))
+                        return true
+                    end
+                end
+            end
+        end
+        return false
+    end)
+    
+    if success then
+        return true
+    else
+        warn("Failed to teleport to Chromatize button: " .. tostring(err))
+        return false
+    end
+end
+
+-- Function to click Chromatize button
+local function clickChromatizeButton()
+    local success, err = pcall(function()
+        local chromatizeButton = workspace:FindFirstChild("Layers")
+        if chromatizeButton then
+            chromatizeButton = chromatizeButton:FindFirstChild("Chromatizer")
+            if chromatizeButton then
+                chromatizeButton = chromatizeButton:FindFirstChild("Chromatize")
+                if chromatizeButton then
+                    chromatizeButton = chromatizeButton:FindFirstChild("Button")
+                    if chromatizeButton and chromatizeButton:FindFirstChild("ClickDetector") then
+                        fireclickdetector(chromatizeButton.ClickDetector)
+                        return true
+                    end
+                end
+            end
+        end
+        return false
+    end)
+    
+    if success then
+        return true
+    else
+        warn("Failed to click Chromatize button: " .. tostring(err))
+        return false
+    end
+end
+
+-- Auto Level Chromatize loop
+task.spawn(function()
+    while scriptRunning do
+        if autoLevelChromatizeEnabled then
+            local success, err = pcall(function()
+                -- Get current Prisms from stats
+                local currentPrisms = getStatValue("Prisms")
+                local chromatizePrice = getChromatizePrice()
+                
+                if currentPrisms and chromatizePrice then
+                    local currentPrismsNum = tonumber(currentPrisms)
+                    
+                    if currentPrismsNum and currentPrismsNum >= chromatizePrice then
+                        -- We have enough Prisms, teleport and upgrade
+                        if teleportToChromatize() then
+                            task.wait(0.5) -- Wait for teleport to complete
+                            if clickChromatizeButton() then
+                                OrionLib:MakeNotification({
+                                    Name = "Auto Chromatize",
+                                    Content = "Successfully upgraded Chromatize level!",
+                                    Image = "rbxassetid://4483345998",
+                                    Time = 2
+                                })
+                            end
+                        end
+                    end
+                    -- If not enough Prisms, stay at current position and wait
+                end
+            end)
+            
+            if not success then
+                warn("Auto Level Chromatize error: " .. tostring(err))
+            end
+        end
+        
+        task.wait(3) -- Check every 3 seconds
+    end
+end)
+
+-- Auto-update stats every 2 seconds for faster updates
 task.spawn(function()
     while scriptRunning do
         updateStatLabels()
-        task.wait(5) -- Update every 5 seconds
+        task.wait(2) -- Update every 2 seconds for faster response
     end
 end)
 
