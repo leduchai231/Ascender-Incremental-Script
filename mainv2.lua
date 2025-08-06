@@ -1,6 +1,6 @@
 
 -- Script Version Configuration
-local SCRIPT_VERSION = "1.7.1"
+local SCRIPT_VERSION = "1.8.0"
 
 -- Load OrionLib with mobile fixes
 local OrionLib
@@ -232,9 +232,11 @@ local defaultConfig = {
     selectedUpgradeType = "W1",
     autoAllRuneEnabled = false,
     autoAllRuneSpeed = 2,
+    autoUpgradeSpeed = 0.1,
     autoLevelChromatizeEnabled = false,
     autoLoadConfigEnabled = true,
-    autoExecuteOnRejoinEnabled = false
+    autoExecuteOnRejoinEnabled = false,
+    chromatizeRuneSelection = "5M Beginner"
 }
 
 local function getConfigPath(configName)
@@ -323,9 +325,11 @@ local function saveConfig(configName)
         selectedUpgradeType = selectedUpgradeType,
         autoAllRuneEnabled = autoAllRuneEnabled,
         autoAllRuneSpeed = autoAllRuneSpeed,
+        autoUpgradeSpeed = autoUpgradeSpeed,
         autoLevelChromatizeEnabled = autoLevelChromatizeEnabled,
         autoLoadConfigEnabled = autoLoadConfigEnabled,
-        autoExecuteOnRejoinEnabled = autoExecuteOnRejoinEnabled
+        autoExecuteOnRejoinEnabled = autoExecuteOnRejoinEnabled,
+        chromatizeRuneSelection = chromatizeRuneSelection
     }
     
     local success, err = pcall(function()
@@ -384,9 +388,11 @@ local function loadConfig(configName)
         selectedUpgradeType = result.selectedUpgradeType or defaultConfig.selectedUpgradeType
         autoAllRuneEnabled = result.autoAllRuneEnabled or defaultConfig.autoAllRuneEnabled
         autoAllRuneSpeed = result.autoAllRuneSpeed or defaultConfig.autoAllRuneSpeed
+        autoUpgradeSpeed = result.autoUpgradeSpeed or defaultConfig.autoUpgradeSpeed
         autoLevelChromatizeEnabled = result.autoLevelChromatizeEnabled or defaultConfig.autoLevelChromatizeEnabled
         autoLoadConfigEnabled = result.autoLoadConfigEnabled or defaultConfig.autoLoadConfigEnabled
         autoExecuteOnRejoinEnabled = result.autoExecuteOnRejoinEnabled or defaultConfig.autoExecuteOnRejoinEnabled
+        chromatizeRuneSelection = result.chromatizeRuneSelection or defaultConfig.chromatizeRuneSelection
         
         currentConfigName = configName
         
@@ -415,6 +421,12 @@ local function loadConfig(configName)
             end
             if toggleReferences.autoExecuteOnRejoin then
                 toggleReferences.autoExecuteOnRejoin:Set(autoExecuteOnRejoinEnabled)
+            end
+            if toggleReferences.chromatizeRuneDropdown then
+                toggleReferences.chromatizeRuneDropdown:Set(chromatizeRuneSelection)
+            end
+            if toggleReferences.upgradeTypeDropdown then
+                toggleReferences.upgradeTypeDropdown:Set(selectedUpgradeType)
             end
         end)
         
@@ -616,7 +628,7 @@ MainTab:AddLabel("Version: " .. SCRIPT_VERSION)
 MainTab:AddLabel("Last Updated: 2024-12-19")
 
 MainTab:AddLabel("Recent Updates:")
-MainTab:AddLabel("• v" .. SCRIPT_VERSION .. ": Removed all debug messages, Anti AFK enabled by default")
+MainTab:AddLabel("• v" .. SCRIPT_VERSION .. ": Complete config system - saves all settings, improved auto-execute (rejoin only), fixed chromatizer rune selection")
 MainTab:AddLabel("• v1.6.2: Fixed string vs number comparison error in chromatizer")
 MainTab:AddLabel("• v1.6.1: Updated getCurrentPrisms to use script's stat display values")
 MainTab:AddLabel("• v1.6.0: New Rune tab with multi-select & integrated chromatizer")
@@ -900,7 +912,7 @@ ConfigTab:AddButton({
 -- TAB TALENT TREE UPGRADE
 TalentTreeTab:AddLabel("Talent Tree Auto Upgrade")
 
-TalentTreeTab:AddDropdown({
+toggleReferences.upgradeTypeDropdown = TalentTreeTab:AddDropdown({
     Name = "Select Upgrade Type",
     Default = "W1",
     Options = {"W1", "W2", "W1+W2"},
@@ -1070,7 +1082,7 @@ RuneTab:AddLabel("Auto Chromatizer + Talent Tree")
 
 local chromatizeRuneSelection = "5M Beginner"
 
-RuneTab:AddDropdown({
+toggleReferences.chromatizeRuneDropdown = RuneTab:AddDropdown({
     Name = "Select Rune for Chromatizer",
     Default = "5M Beginner",
     Options = runeList,
@@ -2463,12 +2475,31 @@ end
 -- Check for Auto Execute on Rejoin and execute script
 task.spawn(function()
     if isfile("AscenderIncrementalAutoExecute.txt") then
-        autoExecuteOnRejoinEnabled = true
+        -- Wait to check if player was already in game (rejoin scenario)
+        task.wait(5)
         
-        -- Try to read and execute the saved script URL
-        local success, scriptUrl = pcall(function()
-            return readfile("AscenderIncrementalAutoExecute.txt")
-        end)
+        local player = game:GetService("Players").LocalPlayer
+        local isRejoin = false
+        
+        -- Check if this is a rejoin by looking at player's session time
+        if player and player.AccountAge and player.AccountAge > 0 then
+            -- Additional check: if player has some game stats or was in game before
+            local success, hasGameData = pcall(function()
+                return player:FindFirstChild("leaderstats") or 
+                       player:FindFirstChild("PlayerGui") and 
+                       #player.PlayerGui:GetChildren() > 3 -- More than basic GUI elements
+            end)
+            isRejoin = success and hasGameData
+        end
+        
+        -- Only auto-execute if this appears to be a rejoin scenario
+        if isRejoin then
+            autoExecuteOnRejoinEnabled = true
+            
+            -- Try to read and execute the saved script URL
+            local success, scriptUrl = pcall(function()
+                return readfile("AscenderIncrementalAutoExecute.txt")
+            end)
         
         if success and scriptUrl and scriptUrl ~= "" then
             OrionLib:MakeNotification({
@@ -2511,6 +2542,18 @@ task.spawn(function()
                 Image = "rbxassetid://4483345998",
                 Time = 3
             })
+        end
+        else
+            -- Not a rejoin scenario, just clean up the auto-execute file
+            OrionLib:MakeNotification({
+                Name = "Auto Execute",
+                Content = "Auto-execute file found but this is not a rejoin scenario. File removed.",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+            if isfile("AscenderIncrementalAutoExecute.txt") then
+                delfile("AscenderIncrementalAutoExecute.txt")
+            end
         end
     end
 end)
