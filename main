@@ -1,99 +1,39 @@
 
--- Load OrionLib with comprehensive error handling and multiple working fallbacks
+-- Load OrionLib with mobile fixes
 local OrionLib
-local orionSources = {
-    "https://raw.githubusercontent.com/jensonhirst/Orion/main/source",
-    "https://raw.githubusercontent.com/shlexware/Orion/main/source",
-    "https://raw.githubusercontent.com/ionlyusegithubformcmods/1-Line-Scripts/main/Orion.lua",
-    "https://raw.githubusercontent.com/ActualMasterOogway/Orion-Library/main/source.lua",
-    "https://raw.githubusercontent.com/OrionLibrary/Orion/main/source"
-}
-
-local function loadOrionLib()
-    for i, source in ipairs(orionSources) do
-        local success, result = pcall(function()
-            -- Add timeout and retry mechanism
-            local httpSuccess, httpResult = pcall(function()
-                return game:HttpGet(source, true)
-            end)
-            
-            if not httpSuccess then
-                error("HTTP request failed: " .. tostring(httpResult))
-            end
-            
-            if not httpResult or httpResult == "" then
-                error("Empty response from server")
-            end
-            
-            -- Validate the response contains OrionLib code
-            if not string.find(httpResult, "OrionLib") and not string.find(httpResult, "Orion") then
-                error("Invalid OrionLib source - missing library identifier")
-            end
-            
-            return loadstring(httpResult)()
-        end)
-        
-        if success and result and type(result) == "table" then
-            if i > 1 then
-                warn("Successfully loaded OrionLib from fallback source #" .. i)
-            else
-                print("OrionLib loaded successfully from primary source")
-            end
-            return result
-        else
-            warn("Failed to load OrionLib from source #" .. i .. ": " .. tostring(result))
-            wait(0.5) -- Brief delay before trying next source
-        end
-    
-    error("Critical error: All OrionLib sources failed to load. Please check your internet connection or try again later.")
-end
-
--- Load OrionLib with comprehensive error handling
-local loadSuccess, loadResult = pcall(loadOrionLib)
-if loadSuccess then
-    OrionLib = loadResult
-    print("âœ… OrionLib loaded successfully!")
-else
-    warn("âŒ Critical error loading OrionLib: " .. tostring(loadResult))
-    warn("ðŸ’¡ Possible solutions:")
-    warn("   1. Check your internet connection")
-    warn("   2. Ensure HttpService is enabled in game settings")
-    warn("   3. Try again in a few minutes")
-    warn("   4. Contact script developer if issue persists")
-    return
-end 
-
--- Create main Window with comprehensive error handling and mobile optimizations
-local Window
-local windowSuccess, windowError = pcall(function()
-    return OrionLib:MakeWindow({
-        Name = "Ascender Incremental Hub",
-        HidePremium = false,
-        SaveConfig = true,
-        ConfigFolder = "AscenderIncrementalConfig",
-        IntroEnabled = false, -- Disabled to prevent intro-related errors
-        IntroText = "Ascender Incremental Script",
-        -- Icon removed to prevent Frame property errors
-        CloseCallback = function()
-            print("Ascender Incremental Hub closed")
-        end
-    })
+local success, result = pcall(function()
+    -- Try to load mobile-fixed version first
+    local mobileFixedOrion = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+    return mobileFixedOrion
 end)
 
-if windowSuccess then
-    Window = windowError  -- windowError actually contains the window object when success is true
-    print("âœ… Main window created successfully!")
+if success then
+    OrionLib = result
 else
-    warn("âŒ Failed to create main window: " .. tostring(windowError))
-    warn("ðŸ’¡ This might be due to OrionLib compatibility issues")
-    return
-end
+    -- Fallback to original if mobile version fails
+    local fallbackSuccess, fallbackResult = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/jensonhirst/Orion/refs/heads/main/source"))()
+    end)
+    
+    if fallbackSuccess then
+        OrionLib = fallbackResult
+        warn("Using fallback OrionLib version")
+    else
+        warn("Failed to load OrionLib: " .. tostring(result))
+        return
+    end
+end 
 
--- Verify window was created properly
-if not Window then
-    warn("Failed to create OrionLib window: " .. tostring(windowError))
-    return
-end
+-- Create main Window with mobile optimizations
+local Window = OrionLib:MakeWindow({
+    Name = "Ascender Incremental Hub",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "AscenderIncrementalConfig",
+    IntroEnabled = true,
+    IntroText = "Ascender Incremental Script",
+    Icon = "rbxassetid://4483345998"
+})
 
 -- Mobile optimization: Make GUI draggable and touch-friendly
 local function optimizeForMobile()
@@ -115,11 +55,15 @@ local function optimizeForMobile()
                     elseif descendant:IsA("Frame") and descendant.Name:find("Slider") then
                         descendant.Active = true
                     end
+                end
+            end
+        end
     end)
     
     if not success then
         warn("Mobile optimization failed: " .. tostring(err))
     end
+end
 
 -- Apply mobile optimizations after a short delay
 task.spawn(function()
@@ -179,50 +123,47 @@ task.spawn(function()
                         end
                     end)
                 end
+            end
         end)
         
         if not success then
             warn("Draggable fix failed: " .. tostring(err))
         end
+    end
     
     fixDraggableForMobile()
 end)
 
--- Create Tabs with error handling
-local MainTab, TeleportTab, ConfigTab, StatsTab, SettingsTab
+-- Create Tabs
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-local function createTabs()
-    MainTab = Window:MakeTab({
-        Name = "Main",
-        PremiumOnly = false
-    })
-    
-    TeleportTab = Window:MakeTab({
-        Name = "Teleport",
-        PremiumOnly = false
-    })
-    
-    ConfigTab = Window:MakeTab({
-        Name = "Config",
-        PremiumOnly = false
-    })
-    
-    StatsTab = Window:MakeTab({
-        Name = "Stats",
-        PremiumOnly = false
-    })
-    
-    SettingsTab = Window:MakeTab({
-        Name = "Settings",
-        PremiumOnly = false
-    })
-end
+local TeleportTab = Window:MakeTab({
+    Name = "Teleport",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
-local tabSuccess, tabError = pcall(createTabs)
-if not tabSuccess then
-    warn("Failed to create tabs: " .. tostring(tabError))
-    return
-end
+local ConfigTab = Window:MakeTab({
+    Name = "Config",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local SettingsTab = Window:MakeTab({
+    Name = "Settings",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local StatTab = Window:MakeTab({
+    Name = "Stat",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
 -- Services and Events
 local Players = game:GetService("Players")
@@ -242,11 +183,13 @@ local function initializeEvents()
             if ReplicatedStorage.Framework.Events:FindFirstChild("Teleport_Realm") then
                 TeleportRealm = ReplicatedStorage.Framework.Events.Teleport_Realm
             end
+        end
     end)
     
     if not success then
         warn("Failed to initialize events: " .. tostring(err))
     end
+end
 
 initializeEvents()
 
@@ -258,11 +201,6 @@ local scriptRunning = true
 local antiAfkEnabled = true
 local autoAllRuneEnabled = false
 local autoAllRuneSpeed = 2
-local autoChromatizeEnabled = false
-local chromatizeCheckInterval = 1
-
--- UI element references
-local currentConfigLabel = nil
 
 -- Config system
 local configFolderName = "AscenderIncrementalConfigs"
@@ -273,9 +211,7 @@ local defaultConfig = {
     autoUpgradeEnabled = false,
     selectedUpgradeType = "W1",
     autoAllRuneEnabled = false,
-    autoAllRuneSpeed = 2,
-    autoChromatizeEnabled = false,
-    chromatizeCheckInterval = 1
+    autoAllRuneSpeed = 2
 }
 
 local function getConfigPath(configName)
@@ -293,6 +229,7 @@ local function ensureConfigFolder()
         OrionLib:MakeNotification({
             Name = "Config Error",
             Content = "Failed to create config folder: " .. tostring(err),
+            Image = "rbxassetid://4483345998",
             Time = 3
         })
         return false
@@ -321,6 +258,7 @@ local function getConfigList()
                     if char == "/" or char == "\\" then
                         lastSlash = i
                     end
+                end
                 
                 if lastSlash > 0 then
                     name = name:sub(lastSlash + 1)
@@ -332,12 +270,15 @@ local function getConfigList()
                     if configName and configName ~= "" and configName ~= defaultConfigName then
                         return configName
                     end
+                end
                 return nil
             end)
             
             if success2 and fileName then
                 table.insert(configs, fileName)
             end
+        end
+    end
     
     -- Always include default config at the beginning
     table.insert(configs, 1, defaultConfigName)
@@ -358,9 +299,7 @@ local function saveConfig(configName)
         autoUpgradeEnabled = autoUpgradeEnabled,
         selectedUpgradeType = selectedUpgradeType,
         autoAllRuneEnabled = autoAllRuneEnabled,
-        autoAllRuneSpeed = autoAllRuneSpeed,
-        autoChromatizeEnabled = autoChromatizeEnabled,
-        chromatizeCheckInterval = chromatizeCheckInterval
+        autoAllRuneSpeed = autoAllRuneSpeed
     }
     
     local success, err = pcall(function()
@@ -379,15 +318,18 @@ local function saveConfig(configName)
         OrionLib:MakeNotification({
             Name = "Config",
             Content = "Configuration '" .. configName .. "' saved successfully!",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     else
         OrionLib:MakeNotification({
             Name = "Config Error",
             Content = "Failed to save configuration: " .. tostring(err),
+            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
+end
 
 local function loadConfig(configName)
     configName = configName or currentConfigName
@@ -413,8 +355,6 @@ local function loadConfig(configName)
         selectedUpgradeType = result.selectedUpgradeType or defaultConfig.selectedUpgradeType
         autoAllRuneEnabled = result.autoAllRuneEnabled or defaultConfig.autoAllRuneEnabled
         autoAllRuneSpeed = result.autoAllRuneSpeed or defaultConfig.autoAllRuneSpeed
-        autoChromatizeEnabled = result.autoChromatizeEnabled or defaultConfig.autoChromatizeEnabled
-        chromatizeCheckInterval = result.chromatizeCheckInterval or defaultConfig.chromatizeCheckInterval
         
         currentConfigName = configName
         
@@ -426,24 +366,25 @@ local function loadConfig(configName)
         OrionLib:MakeNotification({
             Name = "Config",
             Content = "Configuration '" .. configName .. "' loaded successfully!",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     else
         -- Use default values
         antiAfkEnabled = defaultConfig.antiAfkEnabled
-         autoUpgradeEnabled = defaultConfig.autoUpgradeEnabled
-         selectedUpgradeType = defaultConfig.selectedUpgradeType
-         autoAllRuneEnabled = defaultConfig.autoAllRuneEnabled
-         autoAllRuneSpeed = defaultConfig.autoAllRuneSpeed
-         autoChromatizeEnabled = defaultConfig.autoChromatizeEnabled
-         chromatizeCheckInterval = defaultConfig.chromatizeCheckInterval
+        autoUpgradeEnabled = defaultConfig.autoUpgradeEnabled
+        selectedUpgradeType = defaultConfig.selectedUpgradeType
+        autoAllRuneEnabled = defaultConfig.autoAllRuneEnabled
+        autoAllRuneSpeed = defaultConfig.autoAllRuneSpeed
         
         OrionLib:MakeNotification({
             Name = "Config Error",
             Content = "Failed to load configuration '" .. configName .. "', using defaults",
+            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
+end
 
 -- Upgrade list for Ascender Incremental
 local upgradeListW1 = {
@@ -574,6 +515,8 @@ local function safeFireServer(event, ...)
             if retryCount < maxRetries then
                 task.wait(0.5) -- Wait before retry
             end
+        end
+    end
     
     return false
 end
@@ -590,6 +533,7 @@ local function teleportToPosition(position)
     if not success then
         warn("Teleport failed: " .. tostring(err))
     end
+end
 
 local function getCurrentPosition()
     local success, result = pcall(function()
@@ -605,6 +549,7 @@ local function getCurrentPosition()
     else
         return "Error getting position"
     end
+end
 
 -- TAB MAIN
 MainTab:AddLabel("Auto Features")
@@ -617,6 +562,7 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Anti AFK",
             Content = Value and "Anti AFK enabled" or "Anti AFK disabled",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -644,9 +590,12 @@ ConfigTab:AddTextbox({
                 OrionLib:MakeNotification({
                     Name = "Config Error",
                     Content = "Invalid config name! Use letters, numbers, spaces, hyphens, or underscores only.",
+                    Image = "rbxassetid://4483345998",
                     Time = 3
                 })
             end
+        end
+    end
 })
 
 local configDropdown = ConfigTab:AddDropdown({
@@ -659,10 +608,11 @@ local configDropdown = ConfigTab:AddDropdown({
             OrionLib:MakeNotification({
                 Name = "Config",
                 Content = "Switched to configuration: " .. Value,
-    
+                Image = "rbxassetid://4483345998",
                 Time = 2
             })
         end
+    end
 })
 
 ConfigTab:AddButton({
@@ -673,7 +623,7 @@ ConfigTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Config",
             Content = "Config list refreshed! Found " .. #configs .. " configs",
-    
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -689,10 +639,11 @@ ConfigTab:AddButton({
             OrionLib:MakeNotification({
                 Name = "Config Error",
                 Content = "No config selected to load!",
-
+                Image = "rbxassetid://4483345998",
                 Time = 3
             })
         end
+    end
 })
 
 ConfigTab:AddButton({
@@ -704,9 +655,11 @@ ConfigTab:AddButton({
             OrionLib:MakeNotification({
                 Name = "Config Error",
                 Content = "No config name specified. Please create a new config first.",
+                Image = "rbxassetid://4483345998",
                 Time = 3
             })
         end
+    end
 })
 
 ConfigTab:AddButton({
@@ -737,12 +690,14 @@ ConfigTab:AddButton({
                 OrionLib:MakeNotification({
                     Name = "Config",
                     Content = "Configuration '" .. selectedConfig .. "' removed successfully!",
+                    Image = "rbxassetid://4483345998",
                     Time = 2
                 })
             else
                 OrionLib:MakeNotification({
                     Name = "Config Error",
                     Content = "Failed to remove configuration: " .. tostring(err),
+                    Image = "rbxassetid://4483345998",
                     Time = 3
                 })
             end
@@ -750,9 +705,11 @@ ConfigTab:AddButton({
             OrionLib:MakeNotification({
                 Name = "Config Error",
                 Content = selectedConfig == defaultConfigName and "Cannot remove default config!" or "No config selected to remove!",
+                Image = "rbxassetid://4483345998",
                 Time = 3
             })
         end
+    end
 })
 
 ConfigTab:AddButton({
@@ -763,12 +720,11 @@ ConfigTab:AddButton({
         selectedUpgradeType = defaultConfig.selectedUpgradeType
         autoAllRuneEnabled = defaultConfig.autoAllRuneEnabled
         autoAllRuneSpeed = defaultConfig.autoAllRuneSpeed
-        autoChromatizeEnabled = defaultConfig.autoChromatizeEnabled
-        chromatizeCheckInterval = defaultConfig.chromatizeCheckInterval
         
         OrionLib:MakeNotification({
             Name = "Config",
             Content = "Configuration reset to default values!",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -792,12 +748,15 @@ ConfigTab:AddToggle({
                         if not success then
                             print("Auto-save failed for config: " .. tostring(currentConfigName))
                         end
+                    end
+                end
             end)
         end
         
         OrionLib:MakeNotification({
             Name = "Auto Save",
             Content = Value and "Auto save enabled (every 30s)" or "Auto save disabled",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -809,20 +768,19 @@ ConfigTab:AddButton({
     Name = "Show Current Settings",
     Callback = function()
         local configInfo = string.format(
-            "Config: %s\nAnti AFK: %s\nAuto Upgrade: %s\nUpgrade Type: %s\nAuto All Rune: %s\nRune Speed: %.2fs\nAuto Chromatizer: %s\nCheck Interval: %.1fs",
+            "Config: %s\nAnti AFK: %s\nAuto Upgrade: %s\nUpgrade Type: %s\nAuto All Rune: %s\nRune Speed: %.2fs",
             currentConfigName,
             antiAfkEnabled and "ON" or "OFF",
             autoUpgradeEnabled and "ON" or "OFF",
             selectedUpgradeType,
             autoAllRuneEnabled and "ON" or "OFF",
-            autoAllRuneSpeed,
-            autoChromatizeEnabled and "ON" or "OFF",
-            chromatizeCheckInterval
+            autoAllRuneSpeed
         )
         
         OrionLib:MakeNotification({
             Name = "Current Settings",
             Content = configInfo,
+            Image = "rbxassetid://4483345998",
             Time = 5
         })
     end
@@ -837,6 +795,7 @@ MainTab:AddDropdown({
         OrionLib:MakeNotification({
             Name = "Upgrade Type",
             Content = "Selected upgrade type: " .. Value,
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -850,6 +809,7 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Auto Upgrade",
             Content = Value and "Auto Upgrade enabled (" .. selectedUpgradeType .. ")" or "Auto Upgrade disabled",
+            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -863,6 +823,7 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Auto All Rune",
             Content = Value and "Auto All Rune enabled - RISK MODE!" or "Auto All Rune disabled",
+            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -880,48 +841,23 @@ MainTab:AddTextbox({
             OrionLib:MakeNotification({
                 Name = "Speed Setting",
                 Content = "Rune speed set to " .. string.format("%.2f", numValue) .. " seconds",
+                Image = "rbxassetid://4483345998",
                 Time = 2
             })
         else
             OrionLib:MakeNotification({
                 Name = "Invalid Input",
                 Content = "Please enter a number between 0.01 and 10",
+                Image = "rbxassetid://4483345998",
                 Time = 3
             })
         end
-})
-
--- Chromatizer Check Interval
-MainTab:AddTextbox({
-    Name = "Chromatizer Check Interval (seconds)",
-    Default = tostring(chromatizeCheckInterval),
-    TextDisappear = false,
-    Callback = function(Value)
-        local numValue = tonumber(Value)
-        if numValue and numValue >= 0.1 and numValue <= 10 then
-            chromatizeCheckInterval = numValue
-            OrionLib:MakeNotification({
-                Name = "Check Interval",
-                Content = "Chromatizer check interval set to " .. string.format("%.1f", numValue) .. " seconds",
-                Time = 2
-            })
-        else
-            OrionLib:MakeNotification({
-                Name = "Invalid Input",
-                Content = "Please enter a number between 0.1 and 10",
-                Time = 3
-            })
-        end
+    end
 })
 
 -- Auto Rune (Single Rune Selection)
 local autoRuneEnabled = false
 local selectedRune = "5M Beginner"
-
--- Auto Chromatizer Level (using global variables declared earlier)
--- autoChromatizeEnabled and chromatizeCheckInterval are already declared globally
-local prismsValue = 0
-local chromiumValue = 0
 
 local runeList = {
     "5M Beginner",
@@ -943,6 +879,7 @@ MainTab:AddDropdown({
         OrionLib:MakeNotification({
             Name = "Rune Selection",
             Content = "Selected rune: " .. Value,
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -956,41 +893,11 @@ MainTab:AddToggle({
         OrionLib:MakeNotification({
             Name = "Auto Rune",
             Content = Value and "Auto Rune enabled for " .. selectedRune or "Auto Rune disabled",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
 })
-
--- Auto Chromatizer Level Section
-MainTab:AddLabel("Auto Chromatizer Level")
-
-MainTab:AddToggle({
-    Name = "Auto Chromatizer Level",
-    Default = autoChromatizeEnabled,
-    Callback = function(Value)
-        autoChromatizeEnabled = Value
-        OrionLib:MakeNotification({
-            Name = "Auto Chromatizer",
-            Content = Value and "Auto Chromatizer Level enabled" or "Auto Chromatizer Level disabled",
-            Time = 2
-        })
-    end
-})
-
--- TAB STATS
-StatsTab:AddLabel("Game Statistics Monitor")
-
-local PrismsLabel = StatsTab:AddLabel("Prisms: Loading...")
-local ChromiumLabel = StatsTab:AddLabel("Chromium: Loading...")
-local EnergyLabel = StatsTab:AddLabel("Energy: Loading...")
-local FlameLabel = StatsTab:AddLabel("Flame: Loading...")
-local PowerLabel = StatsTab:AddLabel("Power: Loading...")
-local RPLabel = StatsTab:AddLabel("Realm Points: Loading...")
-local FleshLabel = StatsTab:AddLabel("Flesh: Loading...")
-local APLabel = StatsTab:AddLabel("Arctic Points: Loading...")
-
-StatsTab:AddLabel("Chromatizer Info")
-local ChromatizerPriceLabel = StatsTab:AddLabel("Chromatizer Price: Loading...")
 
 -- TAB TELEPORT
 TeleportTab:AddLabel("Quick Teleport")
@@ -1011,6 +918,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to 5M Beginner" or "Failed to teleport to 5M Beginner",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1032,6 +940,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to 5M Royal" or "Failed to teleport to 5M Royal",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1053,6 +962,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Basic Rune" or "Failed to teleport to Basic Rune",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1074,6 +984,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Color Rune" or "Failed to teleport to Color Rune",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1095,6 +1006,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Nature Rune" or "Failed to teleport to Nature Rune",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1116,6 +1028,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Polychrome Rune" or "Failed to teleport to Polychrome Rune",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1137,6 +1050,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Cryo Rune" or "Failed to teleport to Cryo Rune",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1158,6 +1072,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Quick Teleport",
             Content = success and "Teleported to Arctic Rune" or "Failed to teleport to Arctic Rune",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1172,6 +1087,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Area Teleport",
             Content = "Teleported to Realm 1",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1184,6 +1100,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Area Teleport",
             Content = "Teleported to Realm 2",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1196,6 +1113,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Area Teleport",
             Content = "Teleported to Hall Of Fame",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1210,6 +1128,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Teleport",
             Content = "Teleported to Talent Tree W1 (Position 1)",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1222,6 +1141,7 @@ TeleportTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Teleport",
             Content = "Teleported to Talent Tree W2 (Position 2)",
+            Image = "rbxassetid://4483345998",
             Time = 2
         })
     end
@@ -1240,6 +1160,7 @@ SettingsTab:AddButton({
         OrionLib:MakeNotification({
             Name = "Position Check",
             Content = "Current position: " .. currentPosition,
+            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
@@ -1256,12 +1177,14 @@ SettingsTab:AddButton({
                 OrionLib:MakeNotification({
                     Name = "Position Copied",
                     Content = "Position copied: " .. positionText,
+                    Image = "rbxassetid://4483345998",
                     Time = 3
                 })
             else
                 OrionLib:MakeNotification({
                     Name = "Error",
                     Content = "Cannot get current position",
+                    Image = "rbxassetid://4483345998",
                     Time = 2
                 })
             end
@@ -1271,9 +1194,11 @@ SettingsTab:AddButton({
             OrionLib:MakeNotification({
                 Name = "Error",
                 Content = "Error copying position: " .. tostring(err),
+                Image = "rbxassetid://4483345998",
                 Time = 2
             })
         end
+    end
 })
 
 -- Script Controls section removed as requested
@@ -1296,11 +1221,13 @@ task.spawn(function()
                 OrionLib:MakeNotification({
                     Name = "Anti AFK",
                     Content = "Prevented AFK kick!",
+                    Image = "rbxassetid://4483345998",
                     Time = 2
                 })
             else
                 warn("Anti AFK method 1 failed: " .. tostring(err))
             end
+        end
     end)
     
     -- Method 2: Periodic virtual input
@@ -1322,6 +1249,7 @@ task.spawn(function()
             if not success then
                 warn("Anti AFK method 2 failed: " .. tostring(err))
             end
+        end
         task.wait(300) -- Check every 5 minutes
     end
 end)
@@ -1378,6 +1306,7 @@ task.spawn(function()
                 
                 task.wait(autoAllRuneSpeed) -- Wait based on speed setting between each rune teleport
             end
+        end
          task.wait(0.1) -- Small wait to prevent lag
      end
  end)
@@ -1449,9 +1378,13 @@ task.spawn(function()
                                 else
                                     break
                                 end
+                            end
                         else
                             break
                         end
+                    end
+                end
+            end
         end)
         
         if not success then
@@ -1459,266 +1392,6 @@ task.spawn(function()
         end
         
         task.wait(15) -- Wait 15 seconds before repeating
-    end
-end)
-
--- Function to convert game value to actual value using formula: x = 10^(y-|y|) * e^|y|
-local function toScientificNotation(gameValue)
-    -- Convert to number if it's a string
-    local y = tonumber(gameValue)
-    
-    -- Check if conversion was successful
-    if not y then
-        return "Invalid"
-    end
-    
-    if y == 0 then
-        return "0"
-    end
-    
-    -- |y| lÃ  pháº§n nguyÃªn cá»§a y
-    local integerPart = math.floor(math.abs(y))
-    
-    -- Ãp dá»¥ng cÃ´ng thá»©c: x = 10^(y-|y|) * e^|y|
-    -- Trong Ä‘Ã³: y-|y| lÃ  pháº§n tháº­p phÃ¢n
-    local fractionalPart = y - integerPart
-    
-    -- TÃ­nh x = 10^(fractionalPart) * e^(integerPart)
-    local mantissa = (10 ^ fractionalPart) * math.exp(integerPart)
-    
-    -- Chuyá»ƒn vá» dáº¡ng scientific notation
-    if mantissa == 0 then
-        return "0"
-    end
-    
-    local logMantissa = math.log10(mantissa)
-    local exponent = math.floor(logMantissa)
-    local coefficient = mantissa / (10 ^ exponent)
-    
-    return string.format("%.2fe%d", coefficient, exponent)
-end
-
--- Function to safely get value from Roblox Value objects
-local function getValueSafely(valueObject)
-    if not valueObject then return 0 end
-    
-    local rawValue
-    
-    -- Handle different types of Value objects
-    if valueObject.ClassName == "IntValue" or valueObject.ClassName == "NumberValue" then
-        rawValue = valueObject.Value
-    elseif valueObject.ClassName == "StringValue" then
-        rawValue = valueObject.Value
-    else
-        -- Fallback: try .Value property first, then .Text
-        rawValue = valueObject.Value or valueObject.Text
-    end
-    
-    if not rawValue then return 0 end
-    
-    -- Handle special format like "1;379.57798284067246"
-    if type(rawValue) == "string" then
-        -- Check if it contains semicolon (special format)
-        if rawValue:find(";") then
-            local parts = {}
-            for part in rawValue:gmatch("[^;]+") do
-                table.insert(parts, part)
-            end
-            -- Return the second part (actual value) if it exists
-            if #parts >= 2 then
-                local numValue = tonumber(parts[2])
-                return numValue or 0
-            end
-        
-        -- Try to convert string to number directly
-        local numValue = tonumber(rawValue)
-        return numValue or 0
-    else
-        -- If it's already a number, return it
-        return tonumber(rawValue) or 0
-    end
-
--- Function to get current values
-local function updateValues()
-    local success, err = pcall(function()
-        local player = game:GetService("Players").LocalPlayer
-        
-        -- Get Prisms Value using direct path
-        local prismsStats = game:GetService("Players").LocalPlayer.Stats.Prisms
-        if prismsStats then
-            local numValue = getValueSafely(prismsStats)
-            prismsValue = numValue
-            local scientificValue = toScientificNotation(prismsValue)
-            PrismsLabel:Set("Prisms: " .. scientificValue)
-        else
-            PrismsLabel:Set("Prisms: Not Available")
-        end
-            
-        -- Get Chromium Value using direct path
-        local chromiumStats = game:GetService("Players").LocalPlayer.Stats.Chromium
-        if chromiumStats then
-            local numValue = getValueSafely(chromiumStats)
-            chromiumValue = numValue
-            local scientificValue = toScientificNotation(chromiumValue)
-            ChromiumLabel:Set("Chromium: " .. scientificValue)
-        else
-            ChromiumLabel:Set("Chromium: Not Available")
-        end
-            
-        -- Get Energy Value using direct path
-        local energyStats = game:GetService("Players").LocalPlayer.Stats.Energy
-        if energyStats then
-            local numValue = getValueSafely(energyStats)
-            local scientificValue = toScientificNotation(numValue)
-            EnergyLabel:Set("Energy: " .. scientificValue)
-        else
-            EnergyLabel:Set("Energy: Not Available")
-        end
-            
-        -- Get Flame Value using direct path
-        local flameStats = game:GetService("Players").LocalPlayer.Stats.Flame
-        if flameStats then
-            local numValue = getValueSafely(flameStats)
-            local scientificValue = toScientificNotation(numValue)
-            FlameLabel:Set("Flame: " .. scientificValue)
-        else
-            FlameLabel:Set("Flame: Not Available")
-        end
-            
-        -- Get Power Value using direct path
-        local powerStats = game:GetService("Players").LocalPlayer.Stats.Power
-        if powerStats then
-            local numValue = getValueSafely(powerStats)
-            local scientificValue = toScientificNotation(numValue)
-            PowerLabel:Set("Power: " .. scientificValue)
-        else
-            PowerLabel:Set("Power: Not Available")
-        end
-            
-        -- Get Realm Points Value using direct path
-        local rpStats = game:GetService("Players").LocalPlayer.Stats["Realm Points"]
-        if rpStats then
-            local numValue = getValueSafely(rpStats)
-            local scientificValue = toScientificNotation(numValue)
-            RPLabel:Set("Realm Points: " .. scientificValue)
-        else
-            RPLabel:Set("Realm Points: Not Available")
-        end
-            
-        -- Get Flesh Value using direct path
-        local fleshStats = game:GetService("Players").LocalPlayer.Stats.Flesh
-        if fleshStats then
-            local numValue = getValueSafely(fleshStats)
-            local scientificValue = toScientificNotation(numValue)
-            FleshLabel:Set("Flesh: " .. scientificValue)
-        else
-            FleshLabel:Set("Flesh: Not Available")
-        end
-            
-        -- Get Arctic Points Value using direct path
-        local apStats = game:GetService("Players").LocalPlayer.Stats.ArcticPoints
-        if apStats then
-            local numValue = getValueSafely(apStats)
-            local scientificValue = toScientificNotation(numValue)
-            APLabel:Set("Arctic Points: " .. scientificValue)
-        else
-            APLabel:Set("Arctic Points: Not Available")
-        end
-        
-        -- Get Chromatizer Price (keep original format, no scientific notation)
-        local chromatizeButton = workspace:FindFirstChild("Layers")
-        if chromatizeButton then
-            chromatizeButton = chromatizeButton:FindFirstChild("Chromatizer")
-            if chromatizeButton then
-                chromatizeButton = chromatizeButton:FindFirstChild("Chromatize")
-                if chromatizeButton then
-                    chromatizeButton = chromatizeButton:FindFirstChild("Button")
-                    if chromatizeButton then
-                        chromatizeButton = chromatizeButton:FindFirstChild("BillboardGui")
-                        if chromatizeButton then
-                            chromatizeButton = chromatizeButton:FindFirstChild("Price")
-                            if chromatizeButton and chromatizeButton.Text then
-                                ChromatizerPriceLabel:Set("Chromatizer Price: " .. chromatizeButton.Text)
-                            else
-                                ChromatizerPriceLabel:Set("Chromatizer Price: Not Available")
-                            end
-                        else
-                            ChromatizerPriceLabel:Set("Chromatizer Price: BillboardGui Not Found")
-                        end
-                    else
-                        ChromatizerPriceLabel:Set("Chromatizer Price: Button Not Found")
-                    end
-                else
-                    ChromatizerPriceLabel:Set("Chromatizer Price: Chromatize Not Found")
-                end
-            else
-                ChromatizerPriceLabel:Set("Chromatizer Price: Chromatizer Not Found")
-            end
-        else
-            ChromatizerPriceLabel:Set("Chromatizer Price: Layers Not Found")
-        end
-    end)
-    
-    if not success then
-        warn("Value update error: " .. tostring(err))
-        PrismsLabel:Set("Prisms: Error - " .. tostring(err))
-        ChromiumLabel:Set("Chromium: Error - " .. tostring(err))
-        EnergyLabel:Set("Energy: Error - " .. tostring(err))
-        FlameLabel:Set("Flame: Error - " .. tostring(err))
-        PowerLabel:Set("Power: Error - " .. tostring(err))
-        RPLabel:Set("Realm Points: Error - " .. tostring(err))
-        FleshLabel:Set("Flesh: Error - " .. tostring(err))
-        APLabel:Set("Arctic Points: Error - " .. tostring(err))
-        ChromatizerPriceLabel:Set("Chromatizer Price: Error - " .. tostring(err))
-    end
-
--- Function to check and auto chromatize
-local function autoChromatize()
-    local success, err = pcall(function()
-        if not autoChromatizeEnabled then return end
-        
-        -- Get current chromatizer price with safe navigation
-        local layers = workspace:FindFirstChild("Layers")
-        if not layers then return end
-        
-        local chromatizer = layers:FindFirstChild("Chromatizer")
-        if not chromatizer then return end
-        
-        local chromatize = chromatizer:FindFirstChild("Chromatize")
-        if not chromatize then return end
-        
-        local button = chromatize:FindFirstChild("Button")
-        if not button then return end
-        
-        local billboardGui = button:FindFirstChild("BillboardGui")
-        if not billboardGui then return end
-        
-        local priceLabel = billboardGui:FindFirstChild("Price")
-        if priceLabel and priceLabel.Text then
-            local priceText = priceLabel.Text
-            local priceNumber = tonumber(priceText:match("%d+"))
-            
-            if priceNumber and prismsValue >= priceNumber then
-                -- Click chromatizer button
-                safeFireServer(game:GetService("ReplicatedStorage").Remotes.Chromatize)
-                OrionLib:MakeNotification({
-                    Name = "Auto Chromatizer",
-                    Content = "Chromatized! Price: " .. priceText,
-                    Time = 2
-                })
-            end
-    end)
-    
-    if not success then
-        warn("Auto chromatize error: " .. tostring(err))
-    end
-
--- Values monitor and auto chromatizer loop
-task.spawn(function()
-    while scriptRunning do
-        updateValues()
-        autoChromatize()
-        task.wait(chromatizeCheckInterval)
     end
 end)
 
@@ -1732,6 +1405,7 @@ task.spawn(function()
                     currentPosition = newPosition
                     PositionLabel:Set("Position: " .. currentPosition)
                 end
+            end
         end)
         
         if not success then
@@ -1784,6 +1458,7 @@ task.spawn(function()
                                         math.max(descendant.Size.Y.Offset, 30)
                                     )
                                 end
+                            end
                             
                             -- Enhance sliders for mobile
                             if descendant:IsA("Frame") and (descendant.Name:find("Slider") or descendant.Name:find("Bar")) then
@@ -1794,60 +1469,176 @@ task.spawn(function()
                                     if child:IsA("Frame") and child.Name:find("Handle") then
                                         child.Size = UDim2.new(0, 20, 1, 0) -- Larger handle
                                     end
+                                end
+                            end
                             
                             -- Enhance text inputs for mobile
                             if descendant:IsA("TextBox") then
                                 descendant.ClearTextOnFocus = false
                                 descendant.Active = true
                             end
+                        end
+                    end
+                end
+            end
         end)
         
         if not success then
             warn("Mobile enhancement failed: " .. tostring(err))
         end
-
--- Enhanced notification system without Image parameter
-local function showNotification(title, content, duration)
-    duration = duration or 5
-    local success, err = pcall(function()
-        OrionLib:MakeNotification({
-            Name = title,
-            Content = content,
-            Time = duration
-            -- Image parameter completely removed to prevent Frame errors
-        })
-    end)
-    
-    if not success then
-        warn("Notification failed: " .. tostring(err))
-        -- Fallback to print if notification fails
-        print("[" .. title .. "] " .. content)
-    end
-
--- Script completion notification
-showNotification(
-    "âœ… Script Loaded Successfully!", 
-    "Ascender Incremental Hub is ready to use. All HTTP 404 errors have been fixed with multiple fallback sources.",
-    8
-)
-
-print("ðŸŽ‰ Ascender Incremental Hub loaded successfully!")
-print("ðŸ“ All OrionLib Image parameters removed to prevent Frame errors")
-print("ðŸ”§ Multiple fallback sources implemented for reliability")
-print("ðŸ“± Mobile optimizations enabled")
-print("âš¡ Enhanced error handling active")
-print("")
-print("If you encounter any issues, please check:")
-print("1. HttpService is enabled in game settings")
-print("2. Your internet connection is stable")
-print("3. The game allows HTTP requests")
-print("")
-print("Script by: Ascender Incremental Community")
-print("Version: Fixed HTTP 404 Edition")
-print("Last updated: " .. os.date("%Y-%m-%d %H:%M:%S"))
     end
     
     enhanceMobileExperience()
+end)
+
+-- TAB STAT
+StatTab:AddLabel("Player Statistics")
+
+-- Create stat labels
+local EnergyLabel = StatTab:AddLabel("Energy: Loading...")
+local FlameLabel = StatTab:AddLabel("Flame: Loading...")
+local PowerLabel = StatTab:AddLabel("Power: Loading...")
+local RealmPointsLabel = StatTab:AddLabel("Realm Points: Loading...")
+local FleshLabel = StatTab:AddLabel("Flesh: Loading...")
+local PrismsLabel = StatTab:AddLabel("Prisms: Loading...")
+local OrbsLabel = StatTab:AddLabel("Orbs: Loading...")
+local SpheresLabel = StatTab:AddLabel("Spheres: Loading...")
+local DropletsLabel = StatTab:AddLabel("Droplets: Loading...")
+local WaterLabel = StatTab:AddLabel("Water: Loading...")
+local ArcticPointsLabel = StatTab:AddLabel("Arctic Points: Loading...")
+local IceLabel = StatTab:AddLabel("Ice: Loading...")
+local ChromiumLabel = StatTab:AddLabel("Chromium: Loading...")
+local IciclesLabel = StatTab:AddLabel("Icicles: Loading...")
+
+-- Function to format large numbers
+local function formatNumber(num)
+    if not num then return "0" end
+    
+    local numValue = tonumber(num)
+    if not numValue then return tostring(num) end
+    
+    if numValue >= 1e12 then
+        return string.format("%.2fT", numValue / 1e12)
+    elseif numValue >= 1e9 then
+        return string.format("%.2fB", numValue / 1e9)
+    elseif numValue >= 1e6 then
+        return string.format("%.2fM", numValue / 1e6)
+    elseif numValue >= 1e3 then
+        return string.format("%.2fK", numValue / 1e3)
+    else
+        return string.format("%.0f", numValue)
+    end
+end
+
+-- Function to safely get stat value
+local function getStatValue(statPath)
+    local success, result = pcall(function()
+        local player = game:GetService("Players").LocalPlayer
+        if not player or not player.Stats then return nil end
+        
+        local stat = player.Stats:FindFirstChild(statPath)
+        if stat and stat.Value then
+            return stat.Value
+        end
+        return nil
+    end)
+    
+    if success then
+        return result
+    else
+        return nil
+    end
+end
+
+-- Function to update all stat labels
+local function updateStatLabels()
+    local success, err = pcall(function()
+        -- Get all stat values
+        local energy = getStatValue("Energy")
+        local flame = getStatValue("Flame")
+        local power = getStatValue("Power")
+        local realmPoints = getStatValue("Realm Points")
+        local flesh = getStatValue("Flesh")
+        local prisms = getStatValue("Prisms")
+        local orbs = getStatValue("Orbs")
+        local spheres = getStatValue("Spheres")
+        local droplets = getStatValue("Droplets")
+        local water = getStatValue("Water")
+        local arcticPoints = getStatValue("ArcticPoints")
+        local ice = getStatValue("Ice")
+        local chromium = getStatValue("Chromium")
+        local icicles = getStatValue("Icicles")
+        
+        -- Update labels with formatted values
+        if EnergyLabel and EnergyLabel.Set then
+            EnergyLabel:Set("Energy: " .. formatNumber(energy))
+        end
+        if FlameLabel and FlameLabel.Set then
+            FlameLabel:Set("Flame: " .. formatNumber(flame))
+        end
+        if PowerLabel and PowerLabel.Set then
+            PowerLabel:Set("Power: " .. formatNumber(power))
+        end
+        if RealmPointsLabel and RealmPointsLabel.Set then
+            RealmPointsLabel:Set("Realm Points: " .. formatNumber(realmPoints))
+        end
+        if FleshLabel and FleshLabel.Set then
+            FleshLabel:Set("Flesh: " .. formatNumber(flesh))
+        end
+        if PrismsLabel and PrismsLabel.Set then
+            PrismsLabel:Set("Prisms: " .. formatNumber(prisms))
+        end
+        if OrbsLabel and OrbsLabel.Set then
+            OrbsLabel:Set("Orbs: " .. formatNumber(orbs))
+        end
+        if SpheresLabel and SpheresLabel.Set then
+            SpheresLabel:Set("Spheres: " .. formatNumber(spheres))
+        end
+        if DropletsLabel and DropletsLabel.Set then
+            DropletsLabel:Set("Droplets: " .. formatNumber(droplets))
+        end
+        if WaterLabel and WaterLabel.Set then
+            WaterLabel:Set("Water: " .. formatNumber(water))
+        end
+        if ArcticPointsLabel and ArcticPointsLabel.Set then
+            ArcticPointsLabel:Set("Arctic Points: " .. formatNumber(arcticPoints))
+        end
+        if IceLabel and IceLabel.Set then
+            IceLabel:Set("Ice: " .. formatNumber(ice))
+        end
+        if ChromiumLabel and ChromiumLabel.Set then
+            ChromiumLabel:Set("Chromium: " .. formatNumber(chromium))
+        end
+        if IciclesLabel and IciclesLabel.Set then
+            IciclesLabel:Set("Icicles: " .. formatNumber(icicles))
+        end
+    end)
+    
+    if not success then
+        warn("Error updating stat labels: " .. tostring(err))
+    end
+end
+
+-- Add refresh button
+StatTab:AddButton({
+    Name = "Refresh Stats",
+    Callback = function()
+        updateStatLabels()
+        OrionLib:MakeNotification({
+            Name = "Stats",
+            Content = "Statistics refreshed!",
+            Image = "rbxassetid://4483345998",
+            Time = 2
+        })
+    end
+})
+
+-- Auto-update stats every 5 seconds
+task.spawn(function()
+    while scriptRunning do
+        updateStatLabels()
+        task.wait(5) -- Update every 5 seconds
+    end
 end)
 
 -- Load default config on startup
@@ -1860,9 +1651,12 @@ local function initializeConfig()
         OrionLib:MakeNotification({
             Name = "Config Warning",
             Content = "Failed to load default config, using built-in defaults",
+            Image = "rbxassetid://4483345998",
             Time = 3
         })
     end
+end
+
 initializeConfig()
 
 -- Script loaded notification with mobile detection
@@ -1870,6 +1664,7 @@ local deviceType = game:GetService("UserInputService").TouchEnabled and "Mobile"
 OrionLib:MakeNotification({
     Name = "Ascender Incremental Hub",
     Content = "Script loaded successfully on " .. deviceType .. "! Welcome to Ascender Incremental Hub!",
+    Image = "rbxassetid://4483345998",
     Time = 5
 })
 
@@ -1879,36 +1674,9 @@ if game:GetService("UserInputService").TouchEnabled then
     OrionLib:MakeNotification({
         Name = "Mobile Tips",
         Content = "Mobile optimizations applied! Use 'Toggle GUI (Mobile)' button if keybind doesn't work.",
+        Image = "rbxassetid://4483345998",
         Time = 7
     })
 end
 
 print("Ascender Incremental GUI Script loaded successfully on " .. deviceType .. "!")
-
--- Close remaining blocks
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
-end
