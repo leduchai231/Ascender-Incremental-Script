@@ -1517,8 +1517,8 @@ local function formatNumber(num)
     local numValue = tonumber(num)
     if not numValue then return tostring(num) end
     
-    -- Return the original number without abbreviations
-    return string.format("%.0f", numValue)
+    -- Return the original number without abbreviations, preserving decimals
+    return tostring(numValue)
 end
 
 -- Function to safely get stat value
